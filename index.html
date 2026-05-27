@@ -1,806 +1,903 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-  <title>স্কলারশিপ পোর্টাল | For Bangladeshi Students</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    :root {
-      --bg: #0a0a0f; --surface: #111122; --text: #e0e0ff; --text-secondary: #a0a0c0;
-      --primary: #6c5ce7; --accent: #00cec9;
-      --border: rgba(255,255,255,0.06); --card-bg: #111122; --hover-bg: rgba(255,255,255,0.04);
-      --danger: #ff7675; --success: #55efc4; --warn: #ffc107;
-      --radius-sm: 10px; --radius: 14px; --radius-lg: 20px;
-      --font-xs: 0.7rem; --font-sm: 0.8rem; --font-md: 0.9rem; --font-lg: 1.1rem; --font-xl: 1.5rem;
-    }
-    body {
-      font-family: 'Segoe UI','Noto Sans Bengali',sans-serif;
-      background: var(--bg); color: var(--text);
-      min-height: 100vh; min-height: 100dvh;
-      display: flex; flex-direction: column; align-items: center;
-      padding: 0 0.5rem 1rem; padding-top: 60px;
-      -webkit-font-smoothing: antialiased; text-rendering: optimizeSpeed;
-      transition: background 0.3s, color 0.3s;
-    }
-    /* Light mode overrides */
-    body.light {
-      --bg: #f5f5fa; --surface: #ffffff; --text: #1a1a2e; --text-secondary: #4a4a6a;
-      --border: rgba(0,0,0,0.08); --card-bg: #ffffff; --hover-bg: rgba(0,0,0,0.02);
-      --primary: #6c5ce7; --accent: #00cec9;
-    }
-    /* Dark mode is default, so no separate dark class needed */
-
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-    body.light ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
-
-    /* ───── Top bar ───── */
-    .top-bar {
-      position: fixed; top:0; left:0; right:0; z-index:300; height: 50px;
-      display: flex; justify-content: space-between; align-items: center;
-      background: rgba(17,17,34,0.85); backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom:1px solid var(--border); padding: 0 0.8rem;
-    }
-    body.light .top-bar {
-      background: rgba(255,255,255,0.85); backdrop-filter: blur(12px);
-    }
-    .top-left { display: flex; align-items: center; gap: 0.5rem; }
-    .developer-credit {
-      font-family: 'Courier New',monospace; font-style: italic;
-      font-size: 0.65rem; color: var(--text-secondary); opacity: 0.8;
-      letter-spacing: 0.3px; white-space: nowrap;
-    }
-    .top-actions { display: flex; align-items: center; gap: 0.4rem; }
-    .icon-btn {
-      width: 34px; height: 34px; border-radius: 50%; border:1px solid var(--border);
-      background: transparent; cursor: pointer; font-size: 1rem;
-      display: flex; align-items: center; justify-content: center; color: var(--text);
-      transition: 0.15s; -webkit-tap-highlight-color: transparent;
-    }
-    .icon-btn:active { background: var(--hover-bg); transform: scale(0.92); }
-
-    /* ───── Admin horizontal bar ───── */
-    .admin-bar {
-      position: fixed; top:50px; left:0; right:0; z-index:299;
-      background: rgba(17,17,34,0.9); backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-bottom:1px solid var(--border);
-      display: none; align-items: center; justify-content: center;
-      padding: 0.5rem 0.6rem; gap: 0.4rem; flex-wrap: wrap;
-    }
-    body.light .admin-bar {
-      background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
-    }
-    .admin-bar.open { display: flex; }
-    .admin-login-area, .admin-dashboard {
-      display: flex; align-items: center; gap:0.4rem; flex-wrap: wrap; justify-content: center;
-    }
-    .admin-login-area input {
-      width: auto; min-width: 120px; padding: 0.45rem 0.6rem;
-      font-size: var(--font-sm); border-radius: 8px;
-    }
-    .admin-dashboard .btn {
-      width: auto; margin-top:0; padding: 0.45rem 0.8rem;
-      font-size: var(--font-sm); border-radius: 20px;
-    }
-    .admin-login-area .btn { width: auto; margin-top:0; padding: 0.45rem 1rem; font-size: var(--font-sm); }
-
-    /* ───── Admin content panels ───── */
-    .admin-content-panel {
-      position: fixed; top:100px; left:50%; transform:translateX(-50%);
-      width:94%; max-width:560px; max-height:65vh; overflow-y:auto;
-      background: var(--surface); border:1px solid var(--border);
-      border-radius: var(--radius-lg); padding:1.2rem; z-index:280;
-      display: none; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-    .admin-content-panel.show { display: block; }
-
-    /* ───── Main panels ───── */
-    .animated-border-panel {
-      position: relative; background: var(--surface);
-      border-radius: var(--radius-lg); width: 100%; max-width: 560px;
-      padding: 1.3rem 1rem; margin-bottom: 1rem; z-index: 1;
-      border: 1px solid var(--border);
-    }
-    .animated-border-panel::after {
-      content:""; position:absolute; top:-1px; left:-1px; right:-1px; bottom:-1px;
-      border-radius: inherit; padding: 1.5px;
-      background: linear-gradient(135deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080);
-      background-size: 300% 300%;
-      animation: neonMove 4s linear infinite;
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      pointer-events: none; opacity: 0.5;
-    }
-    @keyframes neonMove {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    /* ───── Accordion ───── */
-    .accordion-item {
-      position: relative; background: var(--card-bg);
-      border-radius: var(--radius-sm); margin-bottom: 0.5rem; overflow: hidden;
-      border: 1px solid var(--border);
-    }
-    .accordion-header {
-      padding: 0.7rem 0.9rem; display: flex; justify-content: space-between;
-      align-items: center; cursor: pointer; transition: 0.15s;
-      user-select: none; -webkit-user-select: none;
-    }
-    .accordion-header:active { background: var(--hover-bg); }
-    .accordion-header h3 { font-size: var(--font-md); font-weight: 600; color: var(--text); }
-    .accordion-header .arrow { font-size: 0.8rem; transition: transform 0.25s; color: var(--text-secondary); }
-    .accordion-body {
-      max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease;
-      padding: 0 0.9rem;
-    }
-    .accordion-item.open .accordion-body { max-height: 3000px; padding: 0.6rem 0.9rem; }
-    .accordion-item.open .accordion-header .arrow { transform: rotate(180deg); }
-
-    /* ───── Header ───── */
-    .header { text-align: center; margin-bottom: 1rem; }
-    .header h1 { font-size: var(--font-xl); color: var(--text); margin-bottom: 0.15rem; }
-    .header p { color: var(--text-secondary); font-size: var(--font-sm); }
-
-    /* ───── Form elements ───── */
-    .form-group { margin-bottom: 0.8rem; }
-    label {
-      display: block; font-size: var(--font-sm); margin-bottom: 0.25rem;
-      color: var(--text-secondary); font-weight: 500;
-    }
-    input, select, textarea {
-      width: 100%; padding: 0.6rem 0.8rem; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text);
-      font-size: var(--font-md); outline: none; transition: 0.15s;
-      -webkit-appearance: none; appearance: none;
-    }
-    body.light input, body.light select, body.light textarea {
-      background: rgba(0,0,0,0.02); color: var(--text);
-    }
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,206,201,0.12);
-    }
-    select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0a0c0' d='M6 8L1 3h10z'/%3E%3Csvg%3E");
-      background-repeat: no-repeat; background-position: right 0.8rem center; padding-right: 2.2rem;
-    }
-    body.light select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a4a6a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    }
-    .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem; }
-    .checkbox-group label {
-      background: var(--hover-bg); padding: 0.35rem 0.7rem; border-radius: 16px;
-      border: 1px solid var(--border); cursor: pointer; font-size: var(--font-sm);
-      display: flex; align-items: center; gap: 0.3rem; transition: 0.15s;
-      -webkit-tap-highlight-color: transparent; color: var(--text);
-    }
-    .checkbox-group label:active { background: rgba(108,92,231,0.2); border-color: var(--primary); }
-    .checkbox-group input[type="checkbox"] { width: auto; margin:0; accent-color: var(--accent); }
-    .score-fields { margin-top: 0.4rem; }
-
-    /* ───── Buttons ───── */
-    .btn {
-      background: var(--primary); color: white; border: none; padding: 0.7rem 1rem;
-      border-radius: 22px; font-size: var(--font-md); font-weight: 600;
-      cursor: pointer; width: 100%; transition: 0.15s; margin-top: 0.6rem;
-      -webkit-tap-highlight-color: transparent; user-select: none;
-    }
-    .btn:active { transform: scale(0.97); opacity: 0.9; }
-    .hidden { display: none !important; }
-    .error { color: var(--danger); text-align: center; margin-top: 0.3rem; font-size: var(--font-sm); }
-    .success { color: var(--success); text-align: center; margin-top: 0.3rem; font-size: var(--font-sm); }
-
-    /* ───── Cards ───── */
-    .scholarship-card {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 0.8rem; margin-bottom: 0.6rem;
-      transition: 0.15s;
-    }
-    .scholarship-card:active { background: var(--hover-bg); }
-    .match-badge {
-      background: var(--primary); color: white; font-weight: 700;
-      padding: 0.15rem 0.5rem; border-radius: 12px; font-size: var(--font-xs);
-      white-space: nowrap;
-    }
-    .profile-score-bar {
-      width:100%; height:6px; background:rgba(255,255,255,0.08);
-      border-radius:3px; margin:0.4rem 0 0.6rem; overflow:hidden;
-    }
-    body.light .profile-score-bar { background:rgba(0,0,0,0.05); }
-    .profile-score-fill {
-      height:100%; background:linear-gradient(90deg, var(--primary), var(--accent));
-      border-radius:3px; transition:width 0.5s ease;
-    }
-    .suggestions-grid { display:grid; grid-template-columns:1fr; gap:0.5rem; margin-top:0.6rem; }
-    @media(min-width:480px) { .suggestions-grid { grid-template-columns:1fr 1fr; } }
-    .suggestion-category {
-      background: var(--card-bg); border-radius:var(--radius-sm);
-      padding:0.7rem; border:1px solid var(--border);
-    }
-    .suggestion-category h4 { font-size: var(--font-sm); color: var(--text); margin-bottom: 0.3rem; }
-    .suggestion-item {
-      font-size: var(--font-xs); color: var(--text-secondary); margin-bottom: 0.25rem;
-      padding-left: 0.8rem; position: relative; line-height: 1.4;
-    }
-    .suggestion-item::before { content:"▹"; position:absolute; left:0; color: var(--primary); }
-
-    /* ───── Skeleton loading ───── */
-    .skeleton-card {
-      background:var(--card-bg); border-radius:var(--radius);
-      padding:0.8rem; margin-bottom:0.6rem; border:1px solid var(--border);
-    }
-    .skeleton-line {
-      height:0.7rem; background:rgba(255,255,255,0.05); border-radius:4px;
-      margin:0.4rem 0; width:70%;
-    }
-    body.light .skeleton-line { background:rgba(0,0,0,0.05); }
-
-    /* ───── Forgot link ───── */
-    .forgot-link {
-      background: none; border: none; color: var(--accent); text-decoration: underline;
-      cursor: pointer; font-size: var(--font-sm); margin-top: 0.2rem;
-    }
-    .spam-note { font-size: 0.65rem; color: var(--text-secondary); margin-top: 0.2rem; }
-
-    /* ───── Mobile optimizations ───── */
-    @media (max-width:480px) {
-      .animated-border-panel { padding: 1rem 0.7rem; border-radius: var(--radius); }
-      .header h1 { font-size: 1.3rem; }
-      .header p { font-size: 0.75rem; }
-      .accordion-header { padding: 0.6rem 0.7rem; }
-      .accordion-header h3 { font-size: 0.85rem; }
-      .accordion-body { padding: 0 0.7rem; }
-      .accordion-item.open .accordion-body { padding: 0.5rem 0.7rem; }
-      input, select, textarea { padding: 0.55rem 0.7rem; font-size: 0.85rem; }
-      .btn { padding: 0.65rem 0.9rem; font-size: 0.9rem; }
-      .admin-bar { padding: 0.4rem 0.4rem; gap: 0.3rem; }
-      .admin-login-area input { min-width: 100px; padding: 0.4rem 0.5rem; font-size: 0.75rem; }
-      .admin-dashboard .btn { padding: 0.4rem 0.6rem; font-size: 0.75rem; }
-      .admin-content-panel { width:96%; padding:1rem; max-height:60vh; top:95px; }
-      .top-bar { padding: 0 0.5rem; }
-      .developer-credit { font-size: 0.55rem; }
-      .icon-btn { width: 30px; height: 30px; font-size: 0.9rem; }
-    }
-    @media (max-width:360px) {
-      .top-left { gap: 0.2rem; }
-      .top-actions { gap: 0.2rem; }
-      .developer-credit { font-size: 0.5rem; }
-      .icon-btn { width: 28px; height: 28px; font-size: 0.8rem; }
-    }
-  </style>
-</head>
-<body class="dark">
-  <!-- ───── Top bar ───── -->
-  <div class="top-bar">
-    <div class="top-left">
-      <span class="developer-credit">Developed by AHNAF TAHMID ARJON</span>
-    </div>
-    <div class="top-actions">
-      <button class="icon-btn" id="darkToggle" onclick="toggleDarkMode()" title="ডার্ক/লাইট">☀️</button>
-      <button class="icon-btn" onclick="toggleAdminBar()" title="অ্যাডমিন প্যানেল">⋮</button>
-    </div>
-  </div>
-
-  <!-- ───── Admin horizontal bar ───── -->
-  <div class="admin-bar" id="admin-bar">
-    <div id="admin-login-area" class="admin-login-area">
-      <input type="email" id="admin-email" placeholder="অ্যাডমিন ইমেইল" style="width:140px;">
-      <input type="password" id="admin-password" placeholder="পাসওয়ার্ড" style="width:110px;">
-      <button class="btn" onclick="adminLogin()" style="width:auto;">প্রবেশ</button>
-      <span id="admin-login-error" class="error"></span>
-    </div>
-    <div id="admin-dashboard" class="admin-dashboard hidden">
-      <button class="btn" onclick="showAdminTab('add')" style="width:auto;">➕ যোগ</button>
-      <button class="btn" onclick="showAdminTab('list')" style="width:auto; background:#444;">📋 তালিকা</button>
-      <button class="btn" onclick="showAdminTab('analytics')" style="width:auto; background:#444;">📊</button>
-      <button class="btn" onclick="adminLogout()" style="width:auto; background:#555;">লগআউট</button>
-    </div>
-  </div>
-
-  <!-- ───── Admin content panels ───── -->
-  <div class="admin-content-panel" id="admin-add-form">
-    <h3 style="text-align:center;margin-bottom:0.8rem;">➕ নতুন স্কলারশিপ যোগ</h3>
-    <div class="form-group"><label>বৃত্তির নাম</label><input type="text" id="admin_sch_name"></div>
-    <div class="form-group"><label>বিশ্ববিদ্যালয়</label><input type="text" id="admin_sch_university"></div>
-    <div class="form-group"><label>দেশ</label><input type="text" id="admin_sch_country"></div>
-    <div class="form-group"><label>ডিগ্রি (কমা দিয়ে)</label><input type="text" id="admin_degree" placeholder="ব্যাচেলর, মাস্টার্স"></div>
-    <div class="form-group"><label>ধরণ (কমা দিয়ে)</label><input type="text" id="admin_funding" placeholder="পূর্ণ, আংশিক"></div>
-    <div class="form-group"><label>যোগ্যতা</label><select id="admin_eligibility"><option value="যেকোনো">যেকোনো</option><option value="ওআইসি">ওআইসি</option><option value="কমনওয়েলথ">কমনওয়েলথ</option></select></div>
-    <div class="form-group"><label>পাসপোর্ট বাধ্যতামূলক?</label><select id="admin_passport"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
-    <div class="form-group"><label>ন্যূনতম SSC GPA</label><input type="number" step="0.01" id="admin_min_ssc_gpa"></div>
-    <div class="form-group"><label>ন্যূনতম HSC GPA</label><input type="number" step="0.01" id="admin_min_hsc_gpa"></div>
-    <div class="form-group"><label>ন্যূনতম CGPA</label><input type="number" step="0.01" id="admin_min_ug_cgpa"></div>
-    <div class="form-group"><label>শেষ তারিখ</label><input type="date" id="admin_deadline"></div>
-    <div class="form-group"><label>লিংক</label><input type="url" id="admin_page_link"></div>
-    <div class="form-group"><label>বিস্তারিত</label><textarea id="admin_description" rows="3"></textarea></div>
-    <button class="btn" onclick="adminSubmitScholarship()">✅ সংরক্ষণ</button>
-    <p id="admin-submit-msg" class="success"></p>
-  </div>
-
-  <div class="admin-content-panel" id="admin-list-area">
-    <h3 style="text-align:center;">📋 স্কলারশিপ তালিকা</h3>
-    <ul id="scholarship-list" style="list-style:none;padding:0;"></ul>
-  </div>
-
-  <div class="admin-content-panel" id="admin-analytics">
-    <h3 style="text-align:center;">📊 অ্যানালিটিক্স</h3>
-    <p>মোট স্কলারশিপ: <span id="total-sch">0</span></p>
-    <p>আজ সার্চ: <span id="today-searches">0</span></p>
-  </div>
-
-  <!-- ───── Main student content ───── -->
-  <div style="width:100%; display:flex; flex-direction:column; align-items:center; margin-top:0.3rem;">
-    <!-- STUDENT AUTH PANEL -->
-    <div class="animated-border-panel" id="auth-panel">
-      <div class="header">
-        <h1>🔐 লগইন / রেজিস্ট্রেশন</h1>
-        <p>প্রোফাইল সংরক্ষণ করতে এবং নিরাপদে স্কলারশিপ খুঁজতে লগইন করো</p>
-      </div>
-      <div id="auth-mode" style="display:flex;gap:0.4rem;margin-bottom:0.8rem;">
-        <button class="btn" style="flex:1;background:#444;" id="show-login" onclick="showAuthForm('login')">লগইন</button>
-        <button class="btn" style="flex:1;background:#444;" id="show-signup" onclick="showAuthForm('signup')">রেজিস্টার</button>
-      </div>
-      <div id="login-form">
-        <div class="form-group"><label>ইমেইল</label><input type="email" id="login-email" placeholder="example@mail.com"></div>
-        <div class="form-group"><label>পাসওয়ার্ড</label><input type="password" id="login-password" placeholder="••••••"></div>
-        <button class="btn" onclick="studentLogin()">প্রবেশ</button>
-        <div style="text-align:center; margin-top:0.4rem;">
-          <button class="forgot-link" onclick="resetPassword()">পাসওয়ার্ড ভুলে গেছেন?</button>
-          <p class="spam-note">রিসেট ইমেইল খুজে না পেলে অবশ্যই স্প্যাম বক্স চেক করুন।</p>
-        </div>
-      </div>
-      <div id="signup-form" class="hidden">
-        <div class="form-group"><label>ইমেইল</label><input type="email" id="signup-email" placeholder="example@mail.com"></div>
-        <div class="form-group"><label>পাসওয়ার্ড</label><input type="password" id="signup-password" placeholder="৬+ অক্ষর"></div>
-        <button class="btn" onclick="studentSignup()">অ্যাকাউন্ট তৈরি</button>
-      </div>
-      <p id="auth-error" class="error"></p>
-    </div>
-
-    <!-- STUDENT FORM PANEL (hidden until authenticated) -->
-    <div class="animated-border-panel hidden" id="student-form-panel">
-      <div class="header">
-        <h1>🎓 তোমার স্বপ্নের স্কলারশিপ খুঁজো</h1>
-        <p>নিচের তথ্য পূরণ করো, মিলিয়ে দেবো সেরা সুযোগ</p>
-      </div>
-      <!-- all accordions remain exactly as in original code -->
-      <div class="accordion-item open">
-        <div class="accordion-header" onclick="toggleAccordion(this)"><h3>👤 ব্যক্তিগত তথ্য</h3><span class="arrow">▼</span></div>
-        <div class="accordion-body">
-          <div class="form-group"><label>পুরো নাম *</label><input type="text" id="name" placeholder="তোমার নাম" required></div>
-          <div class="form-group"><label>ফোন নম্বর *</label><input type="tel" id="phone" placeholder="01xxxxxxxxx" required></div>
-          <div class="form-group"><label>ইমেইল (ঐচ্ছিক)</label><input type="email" id="email" placeholder="example@mail.com"></div>
-          <div class="form-group"><label>জন্ম তারিখ</label><input type="date" id="birthdate" min="1990-01-01" value="2000-01-01"></div>
-          <div class="form-group"><label>জাতীয়তা</label>
-            <select id="nationality">
-              <option value="বাংলাদেশ">বাংলাদেশ</option><option value="ভারত">ভারত</option>
-              <option value="পাকিস্তান">পাকিস্তান</option><option value="নেপাল">নেপাল</option>
-              <option value="শ্রীলঙ্কা">শ্রীলঙ্কা</option><option value="অন্যান্য">অন্যান্য</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion(this)"><h3>📚 শিক্ষাগত যোগ্যতা</h3><span class="arrow">▼</span></div>
-        <div class="accordion-body">
-          <div class="form-group"><label>SSC GPA</label><input type="number" step="0.01" id="ssc_gpa" placeholder="5.00"></div>
-          <div class="form-group"><label>HSC GPA</label><input type="number" step="0.01" id="hsc_gpa" placeholder="4.80"></div>
-          <div class="form-group"><label>স্নাতকের CGPA (যদি থাকে)</label><input type="number" step="0.01" id="ug_cgpa" placeholder="3.65"></div>
-          <div class="form-group"><label>স্নাতকের সাবজেক্ট(যদি স্নাতক পাশ করে থাকেন)</label><input type="text" id="ug_subject" placeholder="কম্পিউটার সায়েন্স"></div>
-          <div class="form-group"><label>শিক্ষাবিরতি?</label><select id="education_gap"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
-          <div class="form-group"><label>লক্ষ্য ডিগ্রি</label>
-            <select id="target_degree"><option value="ব্যাচেলর">ব্যাচেলর</option><option value="মাস্টার্স">মাস্টার্স</option><option value="পিএইচডি">পিএইচডি</option></select>
-          </div>
-        </div>
-      </div>
-      <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion(this)"><h3>🗣️ ভাষা দক্ষতা</h3><span class="arrow">▼</span></div>
-        <div class="accordion-body">
-          <div class="form-group"><label>ইংরেজি সার্টিফিকেট?</label>
-            <select id="has_english_cert" onchange="toggleLanguageInputs()"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select>
-          </div>
-          <div id="english_cert_section" class="hidden">
-            <label>পরীক্ষা সিলেক্ট করো</label>
-            <div class="checkbox-group" id="english_tests">
-              <label><input type="checkbox" value="IELTS" onchange="toggleScoreField()"> IELTS</label>
-              <label><input type="checkbox" value="TOEFL" onchange="toggleScoreField()"> TOEFL</label>
-              <label><input type="checkbox" value="Duolingo" onchange="toggleScoreField()"> Duolingo</label>
-              <label><input type="checkbox" value="GRE" onchange="toggleScoreField()"> GRE</label>
-              <label><input type="checkbox" value="HSK" onchange="toggleScoreField()"> HSK</label>
-              <label><input type="checkbox" value="অন্যান্য" onchange="toggleScoreField()"> অন্যান্য</label>
-            </div>
-            <div id="score_inputs"></div>
-          </div>
-          <div class="form-group"><label>অন্য ভাষা</label><input type="text" id="other_languages" placeholder="জাপানিজ N4"></div>
-        </div>
-      </div>
-      <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion(this)"><h3>💼 কাজ ও গবেষণা</h3><span class="arrow">▼</span></div>
-        <div class="accordion-body">
-          <div class="form-group"><label>কাজের অভিজ্ঞতা (বছর)</label><input type="number" id="work_experience" step="0.5" value="0"></div>
-          <div class="form-group"><label>গবেষণার অভিজ্ঞতা?</label><select id="research_exp"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
-          <div class="form-group"><label>প্রকাশনা সংখ্যা</label><input type="number" id="publications" value="0"></div>
-          <div class="form-group"><label>আন্তর্জাতিক প্রদর্শনী?</label><select id="intl_exposure"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
-        </div>
-      </div>
-      <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion(this)"><h3>🏆 সহ-শিক্ষা</h3><span class="arrow">▼</span></div>
-        <div class="accordion-body">
-          <div class="form-group"><label>পুরস্কার?</label><select id="awards"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
-          <div class="form-group"><label>নেতৃত্ব?</label><select id="leadership"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
-          <div class="form-group"><label>স্বেচ্ছাসেবী?</label><select id="volunteer"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
-        </div>
-      </div>
-      <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion(this)"><h3>💰 আর্থিক অবস্থা</h3><span class="arrow">▼</span></div>
-        <div class="accordion-body">
-          <div class="form-group"><label>পারিবারিক আয়</label>
-            <select id="income_band">
-              <option value="১৫০০০ এর নিচে">১৫,০০০ টাকার নিচে</option>
-              <option value="১৫০০০-৩০০০০">১৫,০০০ - ৩০,০০০</option>
-              <option value="৩০০০০-৫০০০০">৩০,০০০ - ৫০,০০০</option>
-              <option value="৫০০০০+">৫০,০০০ এর বেশি</option>
-            </select>
-          </div>
-          <div class="form-group"><label>বিশেষ কোটায়?</label>
-            <div class="checkbox-group" id="quota_checkboxes">
-              <label><input type="checkbox" value="মুক্তিযোদ্ধা"> মুক্তিযোদ্ধা</label>
-              <label><input type="checkbox" value="প্রতিবন্ধী"> প্রতিবন্ধী</label>
-              <label><input type="checkbox" value="উপজাতি"> উপজাতি</label>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion(this)"><h3>🛂 ডকুমেন্ট ও গন্তব্য</h3><span class="arrow">▼</span></div>
-        <div class="accordion-body">
-          <div class="form-group"><label>বৈধ পাসপোর্ট?</label><select id="has_passport"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
-          <div class="form-group"><label>পছন্দের দেশ</label>
-            <select id="preferred_country">
-              <option value="যেকোনো">যেকোনো</option><option value="USA">USA</option><option value="UK">UK</option>
-              <option value="Canada">Canada</option><option value="Germany">Germany</option><option value="Turkey">Turkey</option><option value="Japan">Japan</option><option value="China">China</option><option value="Australia">Australia</option>
-            </select>
-          </div>
-          <div class="form-group"><label>পছন্দের বিষয়</label>
-            <select id="preferred_field">
-              <option value="যেকোনো">যেকোনো</option>
-              <option value="কম্পিউটার সায়েন্স">কম্পিউটার সায়েন্স</option><option value="ইঞ্জিনিয়ারিং">ইঞ্জিনিয়ারিং</option>
-              <option value="মেডিসিন">মেডিসিন</option><option value="ব্যবসায় প্রশাসন">ব্যবসায় প্রশাসন</option>
-              <option value="জনস্বাস্থ্য">জনস্বাস্থ্য</option><option value="কৃষি">কৃষি</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <button class="btn" onclick="findScholarships()">🔍 স্কলারশিপ খুঁজুন</button>
-      <button class="btn" style="background:#444;margin-top:0.4rem;" onclick="studentLogout()">🔒 লগআউট</button>
-      <p id="form-error" class="error"></p>
-    </div>
-
-    <!-- RESULTS PANEL -->
-    <div class="animated-border-panel hidden" id="results-panel">
-      <div class="header"><h1>✨ ফলাফল ও পরামর্শ</h1></div>
-      <div id="profile-score-section"></div>
-      <div id="loading-area">
-        <div class="skeleton-card"><div class="skeleton-line"></div><div class="skeleton-line" style="width:40%"></div></div>
-        <div class="skeleton-card"><div class="skeleton-line"></div><div class="skeleton-line" style="width:30%"></div></div>
-      </div>
-      <div id="match-results" class="hidden"></div>
-      <div id="suggestions-container" class="hidden"></div>
-      <button class="btn" onclick="goBackToForm()">🔄 আবার খুঁজো</button>
-    </div>
-  </div>
-
-  <script>
-    // Firebase config (same)
-    const firebaseConfig = {
-      apiKey: "AIzaSyAj0NsmQNhIjPqbyxRkV5fnQ_dZtBtNXwY",
-      authDomain: "scholarbd-9084f.firebaseapp.com",
-      projectId: "scholarbd-9084f",
-      storageBucket: "scholarbd-9084f.firebasestorage.app",
-      messagingSenderId: "776450404324",
-      appId: "1:776450404324:web:9b7d3c51d15b50cc6e61f1",
-      measurementId: "G-XGBMGVSVJ4"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-
-    // Dark/Light mode toggle - updated to work with .light class
-    function toggleDarkMode() {
-      document.body.classList.toggle('light');
-      const isLight = document.body.classList.contains('light');
-      document.getElementById('darkToggle').innerHTML = isLight ? '🌙' : '☀️';
-    }
-
-    // Admin bar toggle
-    function toggleAdminBar() {
-      document.getElementById('admin-bar').classList.toggle('open');
-      document.querySelectorAll('.admin-content-panel').forEach(p => p.classList.remove('show'));
-    }
-
-    // Student auth functions
-    let currentAuthMode = 'login';
-    function showAuthForm(mode) {
-      currentAuthMode = mode;
-      document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
-      document.getElementById('signup-form').classList.toggle('hidden', mode !== 'signup');
-      document.getElementById('show-login').style.background = mode === 'login' ? '#6c5ce7' : '#444';
-      document.getElementById('show-signup').style.background = mode === 'signup' ? '#6c5ce7' : '#444';
-    }
-    function studentLogin() {
-      const email = document.getElementById('login-email').value.trim();
-      const pass = document.getElementById('login-password').value;
-      if (!email || !pass) { document.getElementById('auth-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন'; return; }
-      auth.signInWithEmailAndPassword(email, pass).catch(e => document.getElementById('auth-error').innerText = e.message);
-    }
-    function studentSignup() {
-      const email = document.getElementById('signup-email').value.trim();
-      const pass = document.getElementById('signup-password').value;
-      if (!email || !pass) { document.getElementById('auth-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন'; return; }
-      auth.createUserWithEmailAndPassword(email, pass).catch(e => document.getElementById('auth-error').innerText = e.message);
-    }
-    function studentLogout() { auth.signOut(); }
-
-    function resetPassword() {
-      const email = document.getElementById('login-email').value.trim();
-      if (!email) { document.getElementById('auth-error').innerText = 'দয়া করে প্রথমে ইমেইল দিন'; return; }
-      auth.sendPasswordResetEmail(email)
-        .then(() => { document.getElementById('auth-error').innerText = ''; alert('পাসওয়ার্ড রিসেট ইমেইল পাঠানো হয়েছে। অনুগ্রহ করে ইমেইল চেক করো।'); })
-        .catch(error => { document.getElementById('auth-error').innerText = error.message; });
-    }
-
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        document.getElementById('auth-panel').classList.add('hidden');
-        document.getElementById('student-form-panel').classList.remove('hidden');
-        if (!document.getElementById('email').value) document.getElementById('email').value = user.email || '';
-        db.collection("admins").doc(user.uid).get().then(doc => {
-          if (doc.exists) {
-            document.getElementById('admin-login-area').classList.add('hidden');
-            document.getElementById('admin-dashboard').classList.remove('hidden');
-            document.getElementById('admin-bar').classList.add('open');
-          } else {
-            document.getElementById('admin-login-area').classList.remove('hidden');
-            document.getElementById('admin-dashboard').classList.add('hidden');
-            document.getElementById('admin-bar').classList.remove('open');
-          }
-        });
-      } else {
-        document.getElementById('auth-panel').classList.remove('hidden');
-        document.getElementById('student-form-panel').classList.add('hidden');
-        document.getElementById('results-panel').classList.add('hidden');
-        document.getElementById('admin-login-area').classList.remove('hidden');
-        document.getElementById('admin-dashboard').classList.add('hidden');
-        document.getElementById('admin-bar').classList.remove('open');
-        document.querySelectorAll('.admin-content-panel').forEach(p => p.classList.remove('show'));
-      }
-    });
-
-    async function adminLogin() {
-      const email = document.getElementById('admin-email').value.trim();
-      const pass = document.getElementById('admin-password').value;
-      const errorEl = document.getElementById('admin-login-error');
-      errorEl.innerText = '';
-      if (!email || !pass) { errorEl.innerText = 'ইমেইল ও পাসওয়ার্ড দিন'; return; }
-      try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, pass);
-        const user = userCredential.user;
-        const adminDoc = await db.collection("admins").doc(user.uid).get();
-        if (!adminDoc.exists) { await auth.signOut(); errorEl.innerText = 'আপনি অ্যাডমিন হিসেবে অনুমোদিত নন।'; return; }
-        document.getElementById('admin-login-area').classList.add('hidden');
-        document.getElementById('admin-dashboard').classList.remove('hidden');
-        errorEl.innerText = '';
-        document.getElementById('admin-bar').classList.add('open');
-      } catch (e) { errorEl.innerText = 'লগইন ব্যর্থ: ' + e.message; }
-    }
-
-    function adminLogout() {
-      auth.signOut();
-      document.getElementById('admin-dashboard').classList.add('hidden');
-      document.getElementById('admin-login-area').classList.remove('hidden');
-      document.getElementById('admin-submit-msg').innerText = '';
-      document.querySelectorAll('.admin-content-panel').forEach(p => p.classList.remove('show'));
-    }
-
-    function showAdminTab(tab) {
-      document.getElementById('admin-add-form').classList.remove('show');
-      document.getElementById('admin-list-area').classList.remove('show');
-      document.getElementById('admin-analytics').classList.remove('show');
-      if (tab === 'add') document.getElementById('admin-add-form').classList.add('show');
-      else if (tab === 'list') { document.getElementById('admin-list-area').classList.add('show'); loadAdminList(); }
-      else if (tab === 'analytics') { document.getElementById('admin-analytics').classList.add('show'); loadAnalytics(); }
-    }
-
-    async function loadAdminList() {
-      const list = document.getElementById('scholarship-list'); list.innerHTML = '';
-      const snap = await db.collection("scholarships").get();
-      snap.forEach(doc => { const d = doc.data(); const li = document.createElement('li'); li.innerHTML = `<strong>${d.scholarship_name}</strong> (${d.university_name}) <button onclick="deleteScholarship('${doc.id}')">🗑️</button>`; list.appendChild(li); });
-    }
-    async function deleteScholarship(id) { await db.collection("scholarships").doc(id).delete(); loadAdminList(); }
-    async function loadAnalytics() {
-      const totalSnap = await db.collection("scholarships").get(); document.getElementById('total-sch').innerText = totalSnap.size;
-      const today = new Date(); today.setHours(0,0,0,0);
-      const searchSnap = await db.collection("studentData").where("timestamp",">=",today).get(); document.getElementById('today-searches').innerText = searchSnap.size;
-    }
-    async function adminSubmitScholarship() {
-      const data = {
-        scholarship_name: document.getElementById('admin_sch_name').value,
-        university_name: document.getElementById('admin_sch_university').value,
-        country: document.getElementById('admin_sch_country').value,
-        degree: document.getElementById('admin_degree').value.split(',').map(s=>s.trim()),
-        funding_type: document.getElementById('admin_funding').value.split(',').map(s=>s.trim()),
-        eligibility: document.getElementById('admin_eligibility').value,
-        language_required: false,
-        criteria: {
-          min_ssc_gpa: parseFloat(document.getElementById('admin_min_ssc_gpa').value) || null,
-          min_hsc_gpa: parseFloat(document.getElementById('admin_min_hsc_gpa').value) || null,
-          min_ug_cgpa: parseFloat(document.getElementById('admin_min_ug_cgpa').value) || null,
-          passport_mandatory: document.getElementById('admin_passport').value === 'হ্যাঁ'
-        },
-        deadline: document.getElementById('admin_deadline').value,
-        page_link: document.getElementById('admin_page_link').value,
-        description: document.getElementById('admin_description').value,
-        added_at: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      await db.collection("scholarships").add(data);
-      document.getElementById('admin-submit-msg').innerText = '✅ সংরক্ষিত!';
-      ['admin_sch_name','admin_sch_university','admin_sch_country','admin_degree','admin_funding','admin_page_link','admin_description'].forEach(id => document.getElementById(id).value='');
-      document.getElementById('admin_deadline').value='';
-    }
-
-    function toggleAccordion(header) { header.parentElement.classList.toggle('open'); }
-    function toggleLanguageInputs() {
-      const hasCert = document.getElementById('has_english_cert').value === 'হ্যাঁ';
-      document.getElementById('english_cert_section').classList.toggle('hidden', !hasCert);
-      if (!hasCert) document.getElementById('score_inputs').innerHTML = '';
-    }
-    function toggleScoreField() {
-      const checked = [...document.querySelectorAll('#english_tests input:checked')].map(cb => cb.value);
-      const container = document.getElementById('score_inputs'); container.innerHTML = '';
-      checked.forEach(t => { container.innerHTML += `<div class="form-group"><label>${t} স্কোর</label><input type="text" id="score_${t}"></div>`; });
-    }
-    function validateStudentForm() {
-      const name = document.getElementById('name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      if (!name || !phone) { document.getElementById('form-error').innerText = 'নাম ও ফোন নম্বর আবশ্যক!'; return false; }
-      document.getElementById('form-error').innerText = ''; return true;
-    }
-    function collectStudentData() {
-      const student = {
-        name: document.getElementById('name').value.trim(), phone: document.getElementById('phone').value.trim(),
-        email: document.getElementById('email').value.trim(), birthdate: document.getElementById('birthdate').value,
-        nationality: document.getElementById('nationality').value,
-        ssc_gpa: parseFloat(document.getElementById('ssc_gpa').value) || 0,
-        hsc_gpa: parseFloat(document.getElementById('hsc_gpa').value) || 0,
-        ug_cgpa: parseFloat(document.getElementById('ug_cgpa').value) || null,
-        ug_subject: document.getElementById('ug_subject').value.trim(),
-        education_gap: document.getElementById('education_gap').value,
-        target_degree: document.getElementById('target_degree').value,
-        has_english_cert: document.getElementById('has_english_cert').value === 'হ্যাঁ',
-        english_scores: {}, other_languages: document.getElementById('other_languages').value.trim(),
-        work_experience: parseFloat(document.getElementById('work_experience').value) || 0,
-        research_exp: document.getElementById('research_exp').value === 'হ্যাঁ',
-        publications: parseInt(document.getElementById('publications').value) || 0,
-        intl_exposure: document.getElementById('intl_exposure').value === 'হ্যাঁ',
-        awards: document.getElementById('awards').value === 'হ্যাঁ',
-        leadership: document.getElementById('leadership').value === 'হ্যাঁ',
-        volunteer: document.getElementById('volunteer').value === 'হ্যাঁ',
-        income_band: document.getElementById('income_band').value,
-        quotas: [...document.querySelectorAll('#quota_checkboxes input:checked')].map(cb => cb.value),
-        has_passport: document.getElementById('has_passport').value === 'হ্যাঁ',
-        preferred_country: document.getElementById('preferred_country').value,
-        preferred_field: document.getElementById('preferred_field').value
-      };
-      if (student.has_english_cert) {
-        [...document.querySelectorAll('#english_tests input:checked')].forEach(t => { student.english_scores[t] = document.getElementById(`score_${t}`)?.value || null; });
-      }
-      return student;
-    }
-    function computeProfileScore(student) {
-      let score = 0;
-      if (student.ssc_gpa >= 4.5) score += 12; else if (student.ssc_gpa >= 4.0) score += 8; else if (student.ssc_gpa >= 3.0) score += 4;
-      if (student.hsc_gpa >= 4.5) score += 12; else if (student.hsc_gpa >= 4.0) score += 8; else if (student.hsc_gpa >= 3.0) score += 4;
-      if (student.ug_cgpa) { if (student.ug_cgpa >= 3.75) score += 18; else if (student.ug_cgpa >= 3.5) score += 13; else if (student.ug_cgpa >= 3.0) score += 8; else score += 4; }
-      else if (student.target_degree !== 'ব্যাচেলর') score += 2;
-      if (student.has_english_cert) { const ielts = parseFloat(student.english_scores['IELTS']); if (!isNaN(ielts)) { if (ielts >= 7.5) score += 12; else if (ielts >= 7.0) score += 10; else if (ielts >= 6.5) score += 8; else if (ielts >= 6.0) score += 5; } else score += 6; }
-      else score += 1;
-      if (student.other_languages) score += 3;
-      score += Math.min(8, student.work_experience * 2.5);
-      if (student.research_exp) score += 5; score += Math.min(4, student.publications * 2);
-      if (student.intl_exposure) score += 3; if (student.awards) score += 5;
-      if (student.leadership) score += 4; if (student.volunteer) score += 3;
-      if (student.income_band === '১৫০০০ এর নিচে') score += 5; else if (student.income_band === '১৫০০০-৩০০০০') score += 3;
-      if (student.has_passport) score += 5;
-      if (student.education_gap === 'হ্যাঁ') score -= 3;
-      return Math.min(100, Math.max(0, Math.round(score)));
-    }
-    function isFieldMatch(studentField, scholarshipDesc) {
-      if (studentField === 'যেকোনো') return true;
-      const desc = (scholarshipDesc || '').toLowerCase();
-      const syn = { 'কম্পিউটার সায়েন্স': ['cse','computer','কম্পিউটার','সফটওয়্যার'], 'ইঞ্জিনিয়ারিং': ['engineering','ইঞ্জিনিয়ার','প্রযুক্তি'], 'মেডিসিন': ['medical','medicine','ডাক্তার'], 'ব্যবসায় প্রশাসন': ['bba','mba','business','ব্যবসায়'], 'জনস্বাস্থ্য': ['public health','health'], 'কৃষি': ['agriculture','agri'] };
-      return (syn[studentField] || [studentField.toLowerCase()]).some(k => desc.includes(k));
-    }
-    async function findScholarships() {
-      if (!validateStudentForm()) return;
-      const student = collectStudentData();
-      try { await db.collection("studentData").add({ ...student, uid: auth.currentUser.uid, authEmail: auth.currentUser.email, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); } catch(e) {}
-      const profileScore = computeProfileScore(student);
-      document.getElementById('student-form-panel').classList.add('hidden'); document.getElementById('results-panel').classList.remove('hidden');
-      document.getElementById('loading-area').classList.remove('hidden'); document.getElementById('match-results').classList.add('hidden'); document.getElementById('suggestions-container').classList.add('hidden');
-      const snap = await db.collection("scholarships").get(); const scholarships = []; snap.forEach(d => scholarships.push({ id: d.id, ...d.data() }));
-      const matched = [], almost = [];
-      const oic = ["বাংলাদেশ","পাকিস্তান","মিশর","ইন্দোনেশিয়া","মালয়েশিয়া","নাইজেরিয়া","তুরস্ক"];
-      const cw = ["বাংলাদেশ","ভারত","পাকিস্তান","শ্রীলঙ্কা","যুক্তরাজ্য","কানাডা","অস্ট্রেলিয়া"];
-      for (const sch of scholarships) {
-        const cri = sch.criteria || {}; const eligibility = sch.eligibility || 'যেকোনো'; const degList = sch.degree || [];
-        if (!degList.includes(student.target_degree)) continue;
-        if (eligibility === 'ওআইসি' && !oic.includes(student.nationality)) continue;
-        if (eligibility === 'কমনওয়েলথ' && !cw.includes(student.nationality)) continue;
-        let score = 100;
-        if (cri.min_ssc_gpa && student.ssc_gpa < cri.min_ssc_gpa) score -= 20;
-        if (cri.min_hsc_gpa && student.hsc_gpa < cri.min_hsc_gpa) score -= 20;
-        if (cri.min_ug_cgpa && student.ug_cgpa && student.ug_cgpa < cri.min_ug_cgpa) score -= 25;
-        else if (cri.min_ug_cgpa && !student.ug_cgpa) score -= 12;
-        if (sch.language_required) {
-          if (!student.has_english_cert) score -= 30;
-          else { const tests = sch.language_tests || []; const scores = sch.language_scores || {}; let ok = false; for (const t of tests) { const req = parseFloat(scores[t]); const stu = parseFloat(student.english_scores[t]); if (!isNaN(req) && !isNaN(stu) && stu >= req) ok = true; else if (!isNaN(req) && stu < req) score -= 15; } if (!ok && tests.length) score -= 10; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>স্কলারশিপ পোর্টাল | For Bangladeshi Students</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        :root {
+            --bg: #121212; --surface: #1e1e2a; --text: #e0e0ff; --text-secondary: #a0a0c0;
+            --primary: #6c5ce7; --accent: #00cec9; --border: #2a2a3a; --card-bg: #1e1e2a;
+            --hover-bg: #2a2a3a; --danger: #ff7675; --success: #55efc4; --warn: #fbbf24;
+            --radius-sm: 10px; --radius: 14px; --radius-lg: 20px;
+            --font-xs: 0.7rem; --font-sm: 0.8rem; --font-md: 0.9rem; --font-lg: 1.1rem; --font-xl: 1.5rem;
         }
-        if (cri.passport_mandatory && !student.has_passport) score -= 25;
-        if (sch.description && (sch.description.includes('আর্থিক')||sch.description.includes('low-income'))) { if (student.income_band === '১৫০০০ এর নিচে' || student.income_band === '১৫০০০-৩০০০০') score += 5; }
-        if (student.preferred_country !== 'যেকোনো' && sch.country === student.preferred_country) score += 10;
-        if (isFieldMatch(student.preferred_field, sch.description)) score += 5;
-        if (sch.description && (sch.description.includes('leadership')||sch.description.includes('নেতৃত্ব'))) { if (student.leadership) score += 4; if (student.volunteer) score += 3; }
-        score = Math.min(100, Math.max(0, Math.round(score)));
-        const category = score >= 80 ? '🟢 নিরাপদ' : (score >= 60 ? '🟡 টার্গেট' : '🔴 রিচ');
-        (score >= 40 ? matched : almost).push({ ...sch, matchScore: score, category });
-      }
-      matched.sort((a,b) => b.matchScore - a.matchScore);
-      displayResults(matched, almost, student, profileScore);
-      document.getElementById('loading-area').classList.add('hidden');
-    }
-    function displayResults(matched, almost, student, profileScore) {
-      const scoreDesc = profileScore >= 80 ? 'অসাধারণ!' : profileScore >= 60 ? 'ভালো, উন্নতি সম্ভব।' : 'আরও প্রস্তুতি দরকার।';
-      document.getElementById('profile-score-section').innerHTML = `<h4>📊 প্রোফাইল স্কোর</h4><div class="profile-score-bar"><div class="profile-score-fill" style="width:${profileScore}%;"></div></div><p><strong>${profileScore}/100</strong> — ${scoreDesc}</p>`;
-      const matchDiv = document.getElementById('match-results');
-      matchDiv.innerHTML = matched.length ? `<h3>✅ ${matched.length}টি স্কলারশিপ</h3>` : '<p>❌ মিলেনি</p>';
-      matched.forEach((sch, idx) => {
-        const descId = `desc-${idx}`;
-        matchDiv.innerHTML += `<div class="scholarship-card"><div style="display:flex;justify-content:space-between;"><strong>${sch.scholarship_name||'নামবিহীন'}</strong><span class="match-badge">${sch.matchScore}%</span></div><p>${sch.university_name||''} | ${sch.country||''} | ${sch.deadline||''} | ${sch.category}</p><button onclick="document.getElementById('${descId}').classList.toggle('hidden')" style="background:none;border:1px solid #444;color:#ccc;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.75rem;">📄 বিবরণ</button><div id="${descId}" class="hidden" style="margin-top:0.3rem;font-size:0.8rem;">${(sch.description||'').replace(/\n/g,'<br>')}</div></div>`;
-      });
-      matchDiv.classList.remove('hidden');
-      const suggDiv = document.getElementById('suggestions-container');
-      suggDiv.innerHTML = '<h3>🧠 পরামর্শ</h3><div class="suggestions-grid"></div>';
-      const grid = suggDiv.querySelector('.suggestions-grid');
-      const tips = generateSuggestions(matched, almost, student);
-      const cats = { academic:[], docs:[], finance:[], destination:[] };
-      tips.forEach(t => cats[t.category].push(t.text));
-      for (const [key,title] of [['academic','📚 একাডেমিক'],['docs','🛂 ডকুমেন্ট'],['finance','💰 আর্থিক'],['destination','🌍 দেশ']]) {
-        if (cats[key].length) { const div = document.createElement('div'); div.className = 'suggestion-category'; div.innerHTML = `<h4>${title}</h4>` + cats[key].map(i => `<div class="suggestion-item">${i}</div>`).join(''); grid.appendChild(div); }
-      }
-      suggDiv.classList.remove('hidden');
-    }
-    function generateSuggestions(matched, almost, student) {
-      const tips = [];
-      tips.push({category:'academic', text:`লক্ষ্য ডিগ্রিতে ${matched.length}টি স্কলারশিপ।`});
-      if (student.ssc_gpa < 4.5) tips.push({category:'academic', text:'SSC GPA বাড়ালে আরও সুযোগ।'});
-      if (!student.has_english_cert) tips.push({category:'academic', text:'IELTS দাও।'});
-      if (!student.has_passport) tips.push({category:'docs', text:'পাসপোর্ট করো।'});
-      if (student.work_experience < 1 && student.target_degree !== 'ব্যাচেলর') tips.push({category:'docs', text:'কাজের অভিজ্ঞতা বাড়াও।'});
-      if (student.income_band === '১৫০০০ এর নিচে') tips.push({category:'finance', text:'আর্থিক অবস্থা সুবিধা দেবে।'});
-      tips.push({category:'docs', text:'মোটিভেশন লেটার তৈরি রাখো।'},{category:'academic', text:'ট্রান্সক্রিপ্ট স্ক্যান করো।'},{category:'finance', text:'আয়ের প্রমাণপত্র রাখো।'},{category:'destination', text:'জার্মানি, তুরস্ক, চীন বড় উৎস।'},{category:'destination', text:'CSE ও ইঞ্জিনিয়ারিংয়ে বেশি সুযোগ।'});
-      while (tips.length < 11) tips.push({category:'destination', text:'নিয়মিত পোর্টাল চেক করো।'});
-      return tips.slice(0,17);
-    }
-    function goBackToForm() { document.getElementById('results-panel').classList.add('hidden'); document.getElementById('student-form-panel').classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
-  </script>
+        body { font-family: 'Segoe UI','Noto Sans Bengali',sans-serif; background: var(--bg); color: var(--text); min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: 0 0.5rem 1rem; padding-top: 60px; }
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #3a3a4a; border-radius: 2px; }
+        .top-bar { position: fixed; top:0; left:0; right:0; z-index:300; height: 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(18,18,30,0.9); backdrop-filter: blur(12px); border-bottom:1px solid var(--border); padding: 0 0.8rem; }
+        .top-left { display: flex; align-items: center; gap: 0.5rem; } .developer-credit { font-family: 'Courier New',monospace; font-style: italic; font-size: 0.65rem; color: var(--text-secondary); opacity: 0.8; letter-spacing: 0.3px; white-space: nowrap; }
+        .top-actions { display: flex; align-items: center; gap: 0.4rem; } .icon-btn { width: 34px; height: 34px; border-radius: 50%; border:1px solid var(--border); background: transparent; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; color: var(--text); transition: 0.15s; }
+        .icon-btn:active { background: var(--hover-bg); transform: scale(0.92); }
+        .admin-bar { position: fixed; top:50px; left:0; right:0; z-index:299; background: rgba(18,18,30,0.95); backdrop-filter: blur(10px); border-bottom:1px solid var(--border); display: none; align-items: center; justify-content: center; padding: 0.5rem 0.6rem; gap: 0.4rem; flex-wrap: wrap; }
+        .admin-bar.open { display: flex; }
+        .admin-login-area, .admin-dashboard { display: flex; align-items: center; gap:0.4rem; flex-wrap: wrap; justify-content: center; }
+        .admin-login-area input { width: auto; min-width: 120px; padding: 0.45rem 0.6rem; font-size: var(--font-sm); border-radius: 8px; background: #1a1a2e; color: var(--text); border:1px solid var(--border); }
+        .admin-dashboard .btn { width: auto; margin-top:0; padding: 0.45rem 0.8rem; font-size: var(--font-sm); border-radius: 20px; }
+        .admin-login-area .btn { width: auto; margin-top:0; padding: 0.45rem 1rem; font-size: var(--font-sm); }
+        .admin-content-panel { position: fixed; top:100px; left:50%; transform:translateX(-50%); width:94%; max-width:560px; max-height:65vh; overflow-y:auto; background: var(--surface); border:1px solid var(--border); border-radius: var(--radius-lg); padding:1.2rem; z-index:280; display: none; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .admin-content-panel.show { display: block; }
+        .animated-border-panel { position: relative; background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 560px; padding: 1.3rem 1rem; margin-bottom: 1rem; z-index: 1; border: 1px solid var(--border); }
+        .animated-border-panel::after { content:""; position:absolute; top:-1px; left:-1px; right:-1px; bottom:-1px; border-radius: inherit; padding: 1.5px; background: linear-gradient(135deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080); background-size: 300% 300%; animation: neonMove 4s linear infinite; -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; opacity: 0.35; }
+        @keyframes neonMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .accordion-item { position: relative; background: var(--card-bg); border-radius: var(--radius-sm); margin-bottom: 0.5rem; overflow: hidden; border: 1px solid var(--border); }
+        .accordion-header { padding: 0.7rem 0.9rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.15s; user-select: none; }
+        .accordion-header:active { background: var(--hover-bg); } .accordion-header h3 { font-size: var(--font-md); font-weight: 600; }
+        .accordion-header .arrow { font-size: 0.8rem; transition: transform 0.25s; color: var(--text-secondary); }
+        .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; padding: 0 0.9rem; }
+        .accordion-item.open .accordion-body { max-height: 6000px; padding: 0.6rem 0.9rem; }
+        .accordion-item.open .accordion-header .arrow { transform: rotate(180deg); }
+        .header { text-align: center; margin-bottom: 1rem; } .header h1 { font-size: var(--font-xl); } .header p { color: var(--text-secondary); font-size: var(--font-sm); }
+        .form-group { margin-bottom: 0.8rem; } label { display: block; font-size: var(--font-sm); margin-bottom: 0.25rem; color: var(--text-secondary); font-weight: 500; }
+        input, select, textarea { width: 100%; padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #12121f; color: var(--text); font-size: var(--font-md); outline: none; transition: 0.15s; -webkit-appearance: none; appearance: none; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,206,201,0.15); }
+        select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0a0c0' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.8rem center; padding-right: 2.2rem; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.3rem; }
+        .checkbox-group label { background: var(--hover-bg); padding: 0.4rem 0.8rem; border-radius: 16px; border: 2px solid var(--border); cursor: pointer; font-size: var(--font-sm); display: inline-flex; align-items: center; gap: 0.4rem; transition: 0.15s; user-select: none; color: var(--text); line-height: 1.6; }
+        .checkbox-group label:active { background: rgba(108,92,231,0.25); border-color: var(--primary); }
+        .checkbox-group label:has(input:checked) { border-color: var(--accent); background: rgba(0,206,201,0.12); box-shadow: 0 0 6px rgba(0,206,201,0.2); }
+        .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: #00cec9; cursor: pointer; -webkit-appearance: checkbox; appearance: checkbox; }
+        .btn { background: var(--primary); color: white; border: none; padding: 0.7rem 1rem; border-radius: 22px; font-size: var(--font-md); font-weight: 600; cursor: pointer; width: 100%; transition: 0.15s; margin-top: 0.6rem; }
+        .btn:active { transform: scale(0.97); opacity: 0.9; } .hidden { display: none !important; }
+        .error { color: var(--danger); text-align: center; margin-top: 0.3rem; font-size: var(--font-sm); }
+        .success { color: var(--success); text-align: center; margin-top: 0.3rem; font-size: var(--font-sm); }
+        .scholarship-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.8rem; margin-bottom: 0.6rem; }
+        .match-badge { background: var(--primary); color: white; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 12px; font-size: var(--font-xs); white-space: nowrap; }
+        .competition-badge { padding: 0.15rem 0.5rem; border-radius: 8px; font-size: 0.6rem; font-weight: 600; margin-left: 0.3rem; }
+        .comp-low { background: #10b98122; color: #34d399; } .comp-mid { background: #f59e0b22; color: #fbbf24; }
+        .comp-high { background: #f9731622; color: #fb923c; } .comp-extreme { background: #ef444422; color: #f87171; }
+        .profile-score-bar { width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:3px; margin:0.4rem 0; overflow:hidden; }
+        .profile-score-fill { height:100%; background:linear-gradient(90deg, var(--primary), var(--accent)); border-radius:3px; transition:width 0.5s ease; }
+        .suggestions-grid { display:grid; grid-template-columns:1fr; gap:0.5rem; margin-top:0.6rem; } @media(min-width:480px) { .suggestions-grid { grid-template-columns:1fr 1fr; } }
+        .suggestion-category { background: var(--card-bg); border-radius:var(--radius-sm); padding:0.7rem; border:1px solid var(--border); }
+        .suggestion-category h4 { font-size: var(--font-sm); color: var(--text); margin-bottom: 0.3rem; }
+        .suggestion-item { font-size: var(--font-xs); color: var(--text-secondary); margin-bottom: 0.25rem; padding-left: 0.8rem; position: relative; line-height: 1.4; }
+        .suggestion-item::before { content:"▹"; position:absolute; left:0; color: var(--primary); }
+        .skeleton-card { background:var(--card-bg); border-radius:var(--radius); padding:0.8rem; margin-bottom:0.6rem; border:1px solid var(--border); }
+        .skeleton-line { height:0.7rem; background:rgba(255,255,255,0.06); border-radius:4px; margin:0.4rem 0; width:70%; }
+        .forgot-link { background: none; border: none; color: var(--accent); text-decoration: underline; cursor: pointer; font-size: var(--font-sm); margin-top: 0.2rem; }
+        .spam-note { font-size: 0.65rem; color: var(--text-secondary); margin-top: 0.2rem; }
+        .score-breakdown { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.3rem; line-height: 1.6; }
+        .tier-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.65rem; font-weight: 600; margin-left: 0.3rem; }
+        .tier-a { background: #22c55e33; color: #4ade80; } .tier-b { background: #3b82f633; color: #60a5fa; }
+        .tier-c { background: #f59e0b33; color: #fbbf24; } .tier-d { background: #ef444433; color: #f87171; }
+        .doc-checklist { background: #1a1a2e; border:1px solid var(--border); border-radius: var(--radius-sm); padding:0.6rem; margin:0.4rem 0; font-size:0.75rem; }
+        .doc-checklist h5 { color: var(--accent); margin-bottom:0.3rem; }
+        .doc-checklist li { margin-left:1.2rem; margin-bottom:0.15rem; }
+        .doc-table { width:100%; border-collapse:collapse; font-size:0.6rem; margin:0.5rem 0; display:block; overflow-x:auto; }
+        .doc-table th { background:var(--primary); color:#fff; padding:0.25rem 0.3rem; text-align:center; font-size:0.55rem; }
+        .doc-table td { padding:0.2rem 0.3rem; text-align:center; border-bottom:1px solid var(--border); }
+        @media (max-width:480px) { .animated-border-panel { padding: 1rem 0.7rem; } .header h1 { font-size: 1.3rem; } }
+    </style>
+</head>
+<body>
+    <!-- ══════ TOP BAR ══════ -->
+    <div class="top-bar"><div class="top-left"><span class="developer-credit">Developed by AHNAF TAHMID ARJON</span></div><div class="top-actions"><button class="icon-btn" onclick="toggleAdminBar()" title="অ্যাডমিন প্যানেল">⋮</button></div></div>
+
+    <!-- ══════ ADMIN BAR ══════ -->
+    <div class="admin-bar" id="admin-bar">
+        <div id="admin-login-area" class="admin-login-area">
+            <input type="email" id="admin-email" placeholder="অ্যাডমিন ইমেইল"><input type="password" id="admin-password" placeholder="পাসওয়ার্ড">
+            <button class="btn" onclick="adminLogin()">প্রবেশ</button><span id="admin-login-error" class="error"></span>
+        </div>
+        <div id="admin-dashboard" class="admin-dashboard hidden">
+            <button class="btn" onclick="showAdminTab('add')">➕ যোগ</button>
+            <button class="btn" onclick="showAdminTab('list')" style="background:#4a4a6a;">📋 তালিকা</button>
+            <button class="btn" onclick="showAdminTab('analytics')" style="background:#4a4a6a;">📊</button>
+            <button class="btn" onclick="adminLogout()" style="background:#555;">লগআউট</button>
+        </div>
+    </div>
+
+    <!-- ══════ ADMIN PANELS ══════ -->
+    <div class="admin-content-panel" id="admin-add-form">
+        <h3>➕ নতুন স্কলারশিপ যোগ</h3>
+        <div class="form-group"><label>বৃত্তির নাম</label><input type="text" id="admin_sch_name"></div>
+        <div class="form-group"><label>বিশ্ববিদ্যালয়</label><input type="text" id="admin_sch_university"></div>
+        <div class="form-group"><label>দেশ</label><input type="text" id="admin_sch_country"></div>
+        <div class="form-group"><label>ডিগ্রি (কমা দিয়ে)</label><input type="text" id="admin_degree"></div>
+        <div class="form-group"><label>ধরণ</label><input type="text" id="admin_funding"></div>
+        <div class="form-group"><label>যোগ্যতা</label><select id="admin_eligibility"><option value="যেকোনো">যেকোনো</option><option value="ওআইসি">ওআইসি</option><option value="কমনওয়েলথ">কমনওয়েলথ</option></select></div>
+        <div class="form-group"><label>প্রতিযোগিতার স্তর</label><select id="admin_competition"><option value="low">কম</option><option value="mid">মধ্যম</option><option value="high">উচ্চ</option><option value="extreme">চরম</option></select></div>
+        <div class="form-group"><label>সর্বোচ্চ বয়স</label><input type="number" id="admin_max_age"></div>
+        <div class="form-group"><label>ন্যূনতম কাজের অভিজ্ঞতা (বছর)</label><input type="number" step="0.5" id="admin_min_work"></div>
+        <div class="form-group"><label>পাসপোর্ট বাধ্যতামূলক?</label><select id="admin_passport"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
+        <div class="form-group"><label>ন্যূনতম SSC GPA</label><input type="number" step="0.01" id="admin_min_ssc_gpa"></div>
+        <div class="form-group"><label>ন্যূনতম HSC GPA</label><input type="number" step="0.01" id="admin_min_hsc_gpa"></div>
+        <div class="form-group"><label>ন্যূনতম CGPA</label><input type="number" step="0.01" id="admin_min_ug_cgpa"></div>
+        <div class="form-group"><label>শেষ তারিখ</label><input type="date" id="admin_deadline"></div>
+        <div class="form-group"><label>লিংক</label><input type="url" id="admin_page_link"></div>
+        <div class="form-group"><label>বিস্তারিত</label><textarea id="admin_description" rows="3"></textarea></div>
+        <button class="btn" onclick="adminSubmitScholarship()">✅ সংরক্ষণ</button>
+        <p id="admin-submit-msg" class="success"></p>
+    </div>
+    <div class="admin-content-panel" id="admin-list-area"><h3>📋 স্কলারশিপ তালিকা</h3><ul id="scholarship-list" style="list-style:none;padding:0;"></ul></div>
+    <div class="admin-content-panel" id="admin-analytics"><h3>📊 অ্যানালিটিক্স</h3><p>মোট স্কলারশিপ: <span id="total-sch">0</span></p></div>
+
+    <!-- ══════ MAIN STUDENT CONTENT ══════ -->
+    <div style="width:100%; display:flex; flex-direction:column; align-items:center; margin-top:0.3rem;">
+        <!-- AUTH PANEL -->
+        <div class="animated-border-panel" id="auth-panel">
+            <div class="header"><h1>🔐 লগইন / রেজিস্ট্রেশন</h1><p>প্রোফাইল সংরক্ষণ করতে এবং নিরাপদে স্কলারশিপ খুঁজতে লগইন করো</p></div>
+            <div id="auth-mode" style="display:flex;gap:0.4rem;margin-bottom:0.8rem;">
+                <button class="btn" style="flex:1;background:#4a4a6a;" id="show-login" onclick="showAuthForm('login')">লগইন</button>
+                <button class="btn" style="flex:1;background:#4a4a6a;" id="show-signup" onclick="showAuthForm('signup')">রেজিস্টার</button>
+            </div>
+            <div id="login-form">
+                <div class="form-group"><label>ইমেইল</label><input type="email" id="login-email" placeholder="example@mail.com"></div>
+                <div class="form-group"><label>পাসওয়ার্ড</label><input type="password" id="login-password" placeholder="••••••"></div>
+                <button class="btn" onclick="studentLogin()">প্রবেশ</button>
+                <div style="text-align:center;margin-top:0.4rem;"><button class="forgot-link" onclick="resetPassword()">পাসওয়ার্ড ভুলে গেছেন?</button><p class="spam-note">রিসেট ইমেইল খুঁজে না পেলে অবশ্যই স্প্যাম বক্স চেক করুন।</p></div>
+            </div>
+            <div id="signup-form" class="hidden">
+                <div class="form-group"><label>ইমেইল</label><input type="email" id="signup-email" placeholder="example@mail.com"></div>
+                <div class="form-group"><label>পাসওয়ার্ড</label><input type="password" id="signup-password" placeholder="৬+ অক্ষর"></div>
+                <button class="btn" onclick="studentSignup()">অ্যাকাউন্ট তৈরি</button>
+            </div>
+            <p id="auth-error" class="error"></p>
+        </div>
+
+        <!-- STUDENT FORM PANEL -->
+        <div class="animated-border-panel hidden" id="student-form-panel">
+            <div class="header"><h1>🎓 তোমার স্বপ্নের স্কলারশিপ খুঁজো</h1><p>৪০+ স্কলারশিপ ডাটাবেস — রিয়েল-টাইম ম্যাচিং</p></div>
+
+            <!-- PERSONAL INFO -->
+            <div class="accordion-item open"><div class="accordion-header" onclick="toggleAccordion(this)"><h3>👤 ব্যক্তিগত তথ্য</h3><span class="arrow">▼</span></div>
+                <div class="accordion-body">
+                    <div class="form-group"><label>পুরো নাম *</label><input type="text" id="name" placeholder="তোমার নাম" required></div>
+                    <div class="form-group"><label>ফোন নম্বর *</label><input type="tel" id="phone" placeholder="01xxxxxxxxx" required></div>
+                    <div class="form-group"><label>ইমেইল (ঐচ্ছিক)</label><input type="email" id="email" placeholder="example@mail.com"></div>
+                    <div class="form-group"><label>জন্ম তারিখ</label><input type="date" id="birthdate" min="1990-01-01" value="2000-01-01"></div>
+                    <div class="form-group"><label>জাতীয়তা</label><select id="nationality"><option value="বাংলাদেশ">বাংলাদেশ</option><option value="ভারত">ভারত</option><option value="পাকিস্তান">পাকিস্তান</option><option value="নেপাল">নেপাল</option><option value="শ্রীলঙ্কা">শ্রীলঙ্কা</option><option value="অন্যান্য">অন্যান্য</option></select></div>
+                </div>
+            </div>
+
+            <!-- EDUCATION -->
+            <div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><h3>📚 শিক্ষাগত যোগ্যতা</h3><span class="arrow">▼</span></div>
+                <div class="accordion-body">
+                    <div class="form-group"><label>SSC GPA</label><input type="number" step="0.01" id="ssc_gpa" placeholder="5.00"></div>
+                    <div class="form-group"><label>HSC GPA</label><input type="number" step="0.01" id="hsc_gpa" placeholder="4.80"></div>
+                    <div class="form-group"><label>স্নাতকের CGPA (যদি থাকে)</label><input type="number" step="0.01" id="ug_cgpa" placeholder="3.65"></div>
+                    <div class="form-group"><label>স্নাতকের সাবজেক্ট ( যদি স্নাতক পাশ করে থাকেন )</label><input type="text" id="ug_subject" placeholder="কম্পিউটার সায়েন্স"></div>
+                    <div class="form-group"><label>শিক্ষাবিরতি?</label><select id="education_gap"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
+                    <div class="form-group"><label>লক্ষ্য ডিগ্রি</label><select id="target_degree"><option value="ব্যাচেলর">ব্যাচেলর</option><option value="মাস্টার্স">মাস্টার্স</option><option value="পিএইচডি">পিএইচডি</option></select></div>
+                </div>
+            </div>
+
+            <!-- LANGUAGE -->
+            <div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><h3>🗣️ ভাষা দক্ষতা</h3><span class="arrow">▼</span></div>
+                <div class="accordion-body">
+                    <div class="form-group"><label>ইংরেজি সার্টিফিকেট?</label><select id="has_english_cert" onchange="toggleLanguageInputs()"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
+                    <div id="english_cert_section" class="hidden"><label>ইংরেজি পরীক্ষা সিলেক্ট করো</label>
+                        <div class="checkbox-group" id="english_tests">
+                            <label><input type="checkbox" value="IELTS" onchange="toggleScoreField()"> IELTS</label>
+                            <label><input type="checkbox" value="TOEFL" onchange="toggleScoreField()"> TOEFL</label>
+                            <label><input type="checkbox" value="Duolingo" onchange="toggleScoreField()"> Duolingo</label>
+                            <label><input type="checkbox" value="GRE" onchange="toggleScoreField()"> GRE</label>
+                        </div>
+                        <div id="score_inputs"></div>
+                    </div>
+                    <div class="form-group"><label>অন্য ভাষা জানা আছে?</label>
+                        <div class="checkbox-group" id="other_language_checkboxes">
+                            <label><input type="checkbox" value="জাপানিজ" onchange="toggleOtherLangScore()"> 🇯🇵 জাপানিজ</label>
+                            <label><input type="checkbox" value="জার্মান" onchange="toggleOtherLangScore()"> 🇩🇪 জার্মান</label>
+                            <label><input type="checkbox" value="ম্যান্ডারিন" onchange="toggleOtherLangScore()"> 🇨🇳 ম্যান্ডারিন</label>
+                            <label><input type="checkbox" value="ফরাসি" onchange="toggleOtherLangScore()"> 🇫🇷 ফরাসি</label>
+                            <label><input type="checkbox" value="কোরিয়ান" onchange="toggleOtherLangScore()"> 🇰🇷 কোরিয়ান</label>
+                            <label><input type="checkbox" value="আরবি" onchange="toggleOtherLangScore()"> 🇸🇦 আরবি</label>
+                            <label><input type="checkbox" value="স্প্যানিশ" onchange="toggleOtherLangScore()"> 🇪🇸 স্প্যানিশ</label>
+                            <label><input type="checkbox" value="অন্যান্য" onchange="toggleOtherLangScore()"> অন্যান্য</label>
+                        </div>
+                        <div id="other_lang_scores"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORK & RESEARCH -->
+            <div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><h3>💼 কাজ ও গবেষণা</h3><span class="arrow">▼</span></div>
+                <div class="accordion-body">
+                    <div class="form-group"><label>কাজের অভিজ্ঞতা (বছর)</label><input type="number" id="work_experience" step="0.5" value="0" min="0" max="30"></div>
+                    <div class="form-group"><label>গবেষণার অভিজ্ঞতা?</label><select id="research_exp"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
+                    <div class="form-group"><label>গবেষণা প্রকল্প সংখ্যা</label><input type="number" id="research_projects" value="0" min="0" max="50"></div>
+                    <div class="form-group"><label>প্রকাশনা সংখ্যা</label><input type="number" id="publications" value="0" min="0" max="100"></div>
+                    <div class="form-group"><label>আন্তর্জাতিক কনফারেন্স?</label><select id="intl_exposure"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
+                </div>
+            </div>
+
+            <!-- EXTRACURRICULAR -->
+            <div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><h3>🏆 সহ-শিক্ষা কার্যক্রম</h3><span class="arrow">▼</span></div>
+                <div class="accordion-body">
+                    <label>যেসব কার্যক্রমে অংশগ্রহণ করেছো, টিক দাও:</label>
+                    <div class="checkbox-group" id="extracurricular_checkboxes">
+                        <label><input type="checkbox" value="নেতৃত্ব"> 🏅 নেতৃত্ব</label>
+                        <label><input type="checkbox" value="স্বেচ্ছাসেবী"> 🤝 স্বেচ্ছাসেবী</label>
+                        <label><input type="checkbox" value="খেলাধুলা"> ⚽ খেলাধুলা</label>
+                        <label><input type="checkbox" value="বিতর্ক"> 🎤 বিতর্ক</label>
+                        <label><input type="checkbox" value="সাংস্কৃতিক"> 🎭 সাংস্কৃতিক</label>
+                        <label><input type="checkbox" value="পুরস্কার"> 🥇 পুরস্কার</label>
+                        <label><input type="checkbox" value="ক্লাব"> 📚 ক্লাব/সোসাইটি</label>
+                        <label><input type="checkbox" value="প্রতিযোগিতা"> 🏆 প্রতিযোগিতা</label>
+                        <label><input type="checkbox" value="শিক্ষকতা"> 👨‍🏫 টিউটরিং</label>
+                        <label><input type="checkbox" value="কোনোই_না"> ❌ কোনোটি নয়</label>
+                    </div>
+                    <p style="font-size:0.65rem;color:var(--text-secondary);">"কোনোটি নয়" সিলেক্ট করলে অন্য টিক রিমুভ হবে।</p>
+                </div>
+            </div>
+
+            <!-- FINANCIAL -->
+            <div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><h3>💰 আর্থিক অবস্থা</h3><span class="arrow">▼</span></div>
+                <div class="accordion-body">
+                    <div class="form-group"><label>পারিবারিক আয়</label><select id="income_band"><option value="১৫০০০ এর নিচে">১৫,০০০ টাকার নিচে</option><option value="১৫০০০-৩০০০০">১৫,০০০ - ৩০,০০০</option><option value="৩০০০০-৫০০০০">৩০,০০০ - ৫০,০০০</option><option value="৫০০০০+">৫০,০০০ এর বেশি</option></select></div>
+                    <div class="form-group"><label>বিশেষ কোটায়?</label>
+                        <div class="checkbox-group" id="quota_checkboxes">
+                            <label><input type="checkbox" value="মুক্তিযোদ্ধা"> মুক্তিযোদ্ধা</label>
+                            <label><input type="checkbox" value="প্রতিবন্ধী"> প্রতিবন্ধী</label>
+                            <label><input type="checkbox" value="উপজাতি"> উপজাতি</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOCUMENTS & DESTINATION -->
+            <div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><h3>🛂 ডকুমেন্ট ও গন্তব্য</h3><span class="arrow">▼</span></div>
+                <div class="accordion-body">
+                    <div class="form-group"><label>বৈধ পাসপোর্ট?</label><select id="has_passport"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
+                    <div class="form-group"><label>পছন্দের দেশ</label><select id="preferred_country"><option value="যেকোনো">যেকোনো</option><option value="USA">🇺🇸 USA</option><option value="UK">🇬🇧 UK</option><option value="Canada">🇨🇦 Canada</option><option value="Germany">🇩🇪 Germany</option><option value="France">🇫🇷 France</option><option value="Italy">🇮🇹 Italy</option><option value="Netherlands">🇳🇱 Netherlands</option><option value="Belgium">🇧🇪 Belgium</option><option value="Sweden">🇸🇪 Sweden</option><option value="Switzerland">🇨🇭 Switzerland</option><option value="Denmark">🇩🇰 Denmark</option><option value="Ireland">🇮🇪 Ireland</option><option value="Turkey">🇹🇷 Turkey</option><option value="Japan">🇯🇵 Japan</option><option value="China">🇨🇳 China</option><option value="South Korea">🇰🇷 South Korea</option><option value="Malaysia">🇲🇾 Malaysia</option><option value="Singapore">🇸🇬 Singapore</option><option value="Taiwan">🇹🇼 Taiwan</option><option value="Australia">🇦🇺 Australia</option><option value="New Zealand">🇳🇿 New Zealand</option></select></div>
+                    <div class="form-group"><label>পছন্দের বিষয়</label><select id="preferred_field"><option value="যেকোনো">যেকোনো</option><option value="কম্পিউটার সায়েন্স">কম্পিউটার সায়েন্স</option><option value="ইঞ্জিনিয়ারিং">ইঞ্জিনিয়ারিং</option><option value="মেডিসিন">মেডিসিন</option><option value="ব্যবসায় প্রশাসন">ব্যবসায় প্রশাসন</option><option value="জনস্বাস্থ্য">জনস্বাস্থ্য</option><option value="কৃষি">কৃষি</option></select></div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="findScholarships()">🔍 স্কলারশিপ খুঁজুন</button>
+            <button class="btn" style="background:#4a4a6a;margin-top:0.4rem;" onclick="studentLogout()">🔒 লগআউট</button>
+            <p id="form-error" class="error"></p>
+        </div>
+
+        <!-- RESULTS PANEL -->
+        <div class="animated-border-panel hidden" id="results-panel">
+            <div class="header"><h1>✨ ফলাফল ও পরামর্শ</h1></div>
+            <div id="profile-score-section"></div>
+            <div id="loading-area"><div class="skeleton-card"><div class="skeleton-line"></div><div class="skeleton-line" style="width:40%"></div></div></div>
+            <div id="match-results" class="hidden"></div>
+            <div id="documents-checklist-section" class="hidden"></div>
+            <div id="suggestions-container" class="hidden"></div>
+            <button class="btn" onclick="goBackToForm()">🔄 আবার খুঁজো</button>
+        </div>
+    </div>
+
+    <script>
+        // ── Firebase Init ──
+        const firebaseConfig = { apiKey: "AIzaSyAj0NsmQNhIjPqbyxRkV5fnQ_dZtBtNXwY", authDomain: "scholarbd-9084f.firebaseapp.com", projectId: "scholarbd-9084f", storageBucket: "scholarbd-9084f.firebasestorage.app", messagingSenderId: "776450404324", appId: "1:776450404324:web:9b7d3c51d15b50cc6e61f1", measurementId: "G-XGBMGVSVJ4" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // ── Demo Scholarships (40+) ──
+        const DEMO_SCHOLARSHIPS = [
+            { scholarship_name:"Fulbright Foreign Student Program", university_name:"US Universities", country:"USA", degree:["মাস্টার্স","পিএইচডি"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"extreme", max_age:null, min_work_exp:2, passport_mandatory:"হ্যাঁ", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:null}, deadline:"2026-10-01", region:"north_america", description:"US flagship. IELTS 6.5+/TOEFL 79+. 2 yrs work exp." },
+            { scholarship_name:"Lester B. Pearson International Scholarship", university_name:"University of Toronto", country:"Canada", degree:["ব্যাচেলর"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"extreme", max_age:null, min_work_exp:0, passport_mandatory:"না", criteria:{min_ssc_gpa:4.5, min_hsc_gpa:4.5, min_ug_cgpa:null}, deadline:"2026-11-30", region:"north_america", description:"Full tuition + residence for 4 years." },
+            { scholarship_name:"Chevening Scholarship", university_name:"UK Universities", country:"UK", degree:["মাস্টার্স"], funding_type:["পূর্ণ"], eligibility:"কমনওয়েলথ", competition:"extreme", max_age:null, min_work_exp:2, passport_mandatory:"হ্যাঁ", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:null}, deadline:"2026-11-04", region:"europe", description:"UK government. 2,800 hrs work exp. IELTS 6.5+." },
+            { scholarship_name:"DAAD Master's Scholarship", university_name:"German Universities", country:"Germany", degree:["মাস্টার্স"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"high", max_age:36, min_work_exp:0, passport_mandatory:"না", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:3.0}, deadline:"2026-10-15", region:"europe", description:"Germany's flagship. €992-1,300/month." },
+            { scholarship_name:"Erasmus Mundus Joint Master Degree", university_name:"European Universities", country:"Various (EU)", degree:["মাস্টার্স"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"extreme", max_age:null, min_work_exp:0, passport_mandatory:"না", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:null}, deadline:"2027-01-15", region:"europe", description:"EU-funded. 3-5% acceptance." },
+            { scholarship_name:"MEXT Research Student Scholarship", university_name:"Japanese Universities", country:"Japan", degree:["মাস্টার্স","পিএইচডি"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"high", max_age:35, min_work_exp:0, passport_mandatory:"না", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:3.0}, deadline:"2026-05-20", region:"asia", description:"Japanese Gov. Research proposal critical." },
+            { scholarship_name:"CSC (Chinese Government Scholarship)", university_name:"Chinese Universities", country:"China", degree:["মাস্টার্স","পিএইচডি"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"mid", max_age:35, min_work_exp:0, passport_mandatory:"না", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:2.5}, deadline:"2027-03-01", region:"asia", description:"China Scholarship Council. HSK 4+ preferred." },
+            { scholarship_name:"Global Korea Scholarship (GKS) - Graduate", university_name:"Korean Universities", country:"South Korea", degree:["মাস্টার্স","পিএইচডি"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"high", max_age:40, min_work_exp:0, passport_mandatory:"না", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:null}, deadline:"2027-03-31", region:"asia", description:"Korean Gov. Airfare + tuition + KRW 1M/month." },
+            { scholarship_name:"Türkiye Bursları", university_name:"Turkish Universities", country:"Turkey", degree:["ব্যাচেলর","মাস্টার্স","পিএইচডি"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"mid", max_age:30, min_work_exp:0, passport_mandatory:"না", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:null}, deadline:"2027-02-20", region:"europe", description:"Turkey's flagship. 75% marks minimum." },
+            { scholarship_name:"Australia Awards Scholarship", university_name:"Australian Universities", country:"Australia", degree:["মাস্টার্স","পিএইচডি"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"high", max_age:null, min_work_exp:0, passport_mandatory:"হ্যাঁ", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:null}, deadline:"2026-04-30", region:"oceania", description:"Australian Gov. Fully funded. IELTS 6.5+." },
+            { scholarship_name:"Manaaki New Zealand Scholarship", university_name:"New Zealand Universities", country:"New Zealand", degree:["মাস্টার্স","পিএইচডি"], funding_type:["পূর্ণ"], eligibility:"যেকোনো", competition:"high", max_age:null, min_work_exp:0, passport_mandatory:"না", criteria:{min_ssc_gpa:null, min_hsc_gpa:null, min_ug_cgpa:null}, deadline:"2026-04-10", region:"oceania", description:"NZ Gov. Fully funded." }
+        ];
+
+        let allScholarships = [];
+        async function loadScholarships() {
+            const snap = await db.collection("scholarships").get();
+            if (!snap.empty) { allScholarships = []; snap.forEach(d => allScholarships.push({ id: d.id, ...d.data() })); }
+            else { allScholarships = DEMO_SCHOLARSHIPS; }
+        }
+
+        // ── Admin ──
+        function toggleAdminBar() { document.getElementById('admin-bar').classList.toggle('open'); }
+        async function adminLogin() {
+            const email = document.getElementById('admin-email').value.trim(), pass = document.getElementById('admin-password').value;
+            if (!email || !pass) { document.getElementById('admin-login-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন'; return; }
+            try {
+                const uc = await auth.signInWithEmailAndPassword(email, pass);
+                const doc = await db.collection("admins").doc(uc.user.uid).get();
+                if (!doc.exists) { await auth.signOut(); throw new Error('অ্যাডমিন নন'); }
+                document.getElementById('admin-login-area').classList.add('hidden');
+                document.getElementById('admin-dashboard').classList.remove('hidden');
+                document.getElementById('admin-bar').classList.add('open');
+            } catch(e) { document.getElementById('admin-login-error').innerText = e.message; }
+        }
+        function adminLogout() { auth.signOut(); }
+        function showAdminTab(tab) {
+            document.getElementById('admin-add-form').classList.remove('show');
+            document.getElementById('admin-list-area').classList.remove('show');
+            document.getElementById('admin-analytics').classList.remove('show');
+            if (tab === 'add') document.getElementById('admin-add-form').classList.add('show');
+            else if (tab === 'list') { document.getElementById('admin-list-area').classList.add('show'); loadAdminList(); }
+            else if (tab === 'analytics') { document.getElementById('admin-analytics').classList.add('show'); loadAnalytics(); }
+        }
+        async function loadAdminList() {
+            const l=document.getElementById('scholarship-list'); l.innerHTML='';
+            const s=await db.collection("scholarships").get();
+            s.forEach(d=>{const li=document.createElement('li'); li.innerHTML=`<strong>${d.data().scholarship_name}</strong> <button onclick="deleteScholarship('${d.id}')">🗑️</button>`; l.appendChild(li);});
+        }
+        async function deleteScholarship(id) { await db.collection("scholarships").doc(id).delete(); loadAdminList(); }
+        async function loadAnalytics() { document.getElementById('total-sch').innerText = (await db.collection("scholarships").get()).size; }
+        async function adminSubmitScholarship() {
+            await db.collection("scholarships").add({
+                scholarship_name: document.getElementById('admin_sch_name').value,
+                university_name: document.getElementById('admin_sch_university').value,
+                country: document.getElementById('admin_sch_country').value,
+                degree: document.getElementById('admin_degree').value.split(',').map(s=>s.trim()),
+                funding_type: document.getElementById('admin_funding').value.split(',').map(s=>s.trim()),
+                eligibility: document.getElementById('admin_eligibility').value,
+                competition: document.getElementById('admin_competition').value,
+                max_age: parseInt(document.getElementById('admin_max_age').value)||null,
+                min_work_exp: parseFloat(document.getElementById('admin_min_work').value)||0,
+                passport_mandatory: document.getElementById('admin_passport').value,
+                criteria: { min_ssc_gpa: parseFloat(document.getElementById('admin_min_ssc_gpa').value)||null, min_hsc_gpa: parseFloat(document.getElementById('admin_min_hsc_gpa').value)||null, min_ug_cgpa: parseFloat(document.getElementById('admin_min_ug_cgpa').value)||null },
+                deadline: document.getElementById('admin_deadline').value,
+                page_link: document.getElementById('admin_page_link').value,
+                description: document.getElementById('admin_description').value,
+                added_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('admin-submit-msg').innerText = '✅ সংরক্ষিত!';
+        }
+
+        // ── Student Auth ──
+        let currentAuthMode = 'login';
+        function showAuthForm(mode) {
+            currentAuthMode = mode;
+            document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
+            document.getElementById('signup-form').classList.toggle('hidden', mode !== 'signup');
+            document.getElementById('show-login').style.background = mode === 'login' ? '#6c5ce7' : '#4a4a6a';
+            document.getElementById('show-signup').style.background = mode === 'signup' ? '#6c5ce7' : '#4a4a6a';
+        }
+        function studentLogin() {
+            const email = document.getElementById('login-email').value.trim(), pass = document.getElementById('login-password').value;
+            if (!email || !pass) { document.getElementById('auth-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন'; return; }
+            auth.signInWithEmailAndPassword(email, pass).catch(e => document.getElementById('auth-error').innerText = e.message);
+        }
+        function studentSignup() {
+            const email = document.getElementById('signup-email').value.trim(), pass = document.getElementById('signup-password').value;
+            if (!email || !pass) { document.getElementById('auth-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন'; return; }
+            auth.createUserWithEmailAndPassword(email, pass).catch(e => document.getElementById('auth-error').innerText = e.message);
+        }
+        function studentLogout() { auth.signOut(); }
+        function resetPassword() {
+            const email = document.getElementById('login-email').value.trim();
+            if (!email) { document.getElementById('auth-error').innerText = 'প্রথমে ইমেইল দিন'; return; }
+            auth.sendPasswordResetEmail(email).then(() => alert('রিসেট ইমেইল পাঠানো হয়েছে।')).catch(e => document.getElementById('auth-error').innerText = e.message);
+        }
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('auth-panel').classList.add('hidden');
+                document.getElementById('student-form-panel').classList.remove('hidden');
+                if (!document.getElementById('email').value) document.getElementById('email').value = user.email || '';
+                db.collection("admins").doc(user.uid).get().then(doc => {
+                    if (doc.exists) {
+                        document.getElementById('admin-login-area').classList.add('hidden');
+                        document.getElementById('admin-dashboard').classList.remove('hidden');
+                        document.getElementById('admin-bar').classList.add('open');
+                    }
+                });
+            } else {
+                document.getElementById('auth-panel').classList.remove('hidden');
+                document.getElementById('student-form-panel').classList.add('hidden');
+                document.getElementById('results-panel').classList.add('hidden');
+                document.getElementById('admin-login-area').classList.remove('hidden');
+                document.getElementById('admin-dashboard').classList.add('hidden');
+                document.getElementById('admin-bar').classList.remove('open');
+            }
+        });
+
+        // ── UI Helpers ──
+        function toggleAccordion(h) { h.parentElement.classList.toggle('open'); }
+        function toggleLanguageInputs() {
+            const has = document.getElementById('has_english_cert').value === 'হ্যাঁ';
+            document.getElementById('english_cert_section').classList.toggle('hidden', !has);
+            if (!has) {
+                document.querySelectorAll('#english_tests input[type="checkbox"]').forEach(cb => cb.checked = false);
+                document.getElementById('score_inputs').innerHTML = '';
+            }
+        }
+        function toggleScoreField() {
+            const c = document.getElementById('score_inputs'); c.innerHTML = '';
+            [...document.querySelectorAll('#english_tests input:checked')].forEach(t => {
+                c.innerHTML += `<div class="form-group"><label>${t.value} স্কোর</label><input type="text" id="score_${t.value}" placeholder="${t.value==='IELTS'?'7.5':t.value==='TOEFL'?'100':t.value==='Duolingo'?'130':'320'}"></div>`;
+            });
+        }
+        function toggleOtherLangScore() {
+            const c = document.getElementById('other_lang_scores'); c.innerHTML = '';
+            [...document.querySelectorAll('#other_language_checkboxes input:checked')].forEach(cb => {
+                const l = cb.value;
+                if (l === 'অন্যান্য') c.innerHTML += '<div class="form-group"><label>অন্যান্য ভাষা ও স্তর</label><input type="text" id="other_lang_custom"></div>';
+                else {
+                    let lv = '';
+                    if (l === 'জাপানিজ') lv = '<option value="N5">N5</option><option value="N4">N4</option><option value="N3">N3</option><option value="N2">N2</option><option value="N1">N1</option>';
+                    else if (l === 'ম্যান্ডারিন') lv = '<option value="HSK1">HSK1</option><option value="HSK2">HSK2</option><option value="HSK3">HSK3</option><option value="HSK4">HSK4</option><option value="HSK5">HSK5</option><option value="HSK6">HSK6</option>';
+                    else lv = '<option value="A1">A1</option><option value="A2">A2</option><option value="B1">B1</option><option value="B2">B2</option><option value="C1">C1</option><option value="C2">C2</option>';
+                    c.innerHTML += `<div class="form-group"><label>${l} স্তর</label><select id="level_${l}">${lv}</select></div>`;
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const ec = document.getElementById('extracurricular_checkboxes');
+            if (ec) {
+                ec.addEventListener('change', function(e) {
+                    if (e.target.value === 'কোনোই_না' && e.target.checked) {
+                        ec.querySelectorAll('input').forEach(cb => { if (cb.value !== 'কোনোই_না') cb.checked = false; });
+                    } else if (e.target.value !== 'কোনোই_না' && e.target.checked) {
+                        const nb = ec.querySelector('input[value="কোনোই_না"]');
+                        if (nb) nb.checked = false;
+                    }
+                });
+            }
+        });
+
+        // ── Data Collection ──
+        function validateStudentForm() {
+            if (!document.getElementById('name').value.trim() || !document.getElementById('phone').value.trim()) {
+                document.getElementById('form-error').innerText = 'নাম ও ফোন নম্বর আবশ্যক!';
+                return false;
+            }
+            return true;
+        }
+        function collectStudentData() {
+            const s = {
+                name: document.getElementById('name').value.trim(), phone: document.getElementById('phone').value.trim(),
+                email: document.getElementById('email').value.trim(), birthdate: document.getElementById('birthdate').value,
+                nationality: document.getElementById('nationality').value,
+                ssc_gpa: parseFloat(document.getElementById('ssc_gpa').value) || 0,
+                hsc_gpa: parseFloat(document.getElementById('hsc_gpa').value) || 0,
+                ug_cgpa: parseFloat(document.getElementById('ug_cgpa').value) || null,
+                ug_subject: document.getElementById('ug_subject').value.trim(),
+                education_gap: document.getElementById('education_gap').value,
+                target_degree: document.getElementById('target_degree').value,
+                has_english_cert: document.getElementById('has_english_cert').value === 'হ্যাঁ',
+                english_scores: {},
+                other_languages: [],
+                work_experience: parseFloat(document.getElementById('work_experience').value) || 0,
+                research_exp: document.getElementById('research_exp').value === 'হ্যাঁ',
+                research_projects: parseInt(document.getElementById('research_projects').value) || 0,
+                publications: parseInt(document.getElementById('publications').value) || 0,
+                intl_exposure: document.getElementById('intl_exposure').value === 'হ্যাঁ',
+                extracurriculars: [...document.querySelectorAll('#extracurricular_checkboxes input:checked')].map(cb => cb.value),
+                income_band: document.getElementById('income_band').value,
+                quotas: [...document.querySelectorAll('#quota_checkboxes input:checked')].map(cb => cb.value),
+                has_passport: document.getElementById('has_passport').value === 'হ্যাঁ',
+                preferred_country: document.getElementById('preferred_country').value,
+                preferred_field: document.getElementById('preferred_field').value
+            };
+            if (s.has_english_cert) {
+                document.querySelectorAll('#english_tests input:checked').forEach(t => {
+                    s.english_scores[t.value] = document.getElementById(`score_${t.value}`)?.value || null;
+                });
+            }
+            document.querySelectorAll('#other_language_checkboxes input:checked').forEach(cb => {
+                const l = cb.value;
+                s.other_languages.push({
+                    language: l === 'অন্যান্য' ? (document.getElementById('other_lang_custom')?.value || 'অন্যান্য') : l,
+                    level: l === 'অন্যান্য' ? 'unknown' : (document.getElementById(`level_${l}`)?.value || 'A1')
+                });
+            });
+            return s;
+        }
+
+        // ── Algorithm ──
+        const COUNTRY_LANGUAGE_MAP = { Germany:"জার্মান", Japan:"জাপানিজ", China:"ম্যান্ডারিন", France:"ফরাসি", "South Korea":"কোরিয়ান", Italy:"ইতালিয়ান" };
+        const COUNTRY_FIELD_SYNERGY = {
+            Germany:["ইঞ্জিনিয়ারিং","কম্পিউটার সায়েন্স"], Japan:["কম্পিউটার সায়েন্স","ইঞ্জিনিয়ারিং"],
+            China:["ইঞ্জিনিয়ারিং","কৃষি","মেডিসিন"], USA:["কম্পিউটার সায়েন্স","ব্যবসায় প্রশাসন"],
+            UK:["ব্যবসায় প্রশাসন","জনস্বাস্থ্য"], Canada:["কম্পিউটার সায়েন্স","ইঞ্জিনিয়ারিং"],
+            Australia:["কৃষি","ইঞ্জিনিয়ারিং"], "South Korea":["ইঞ্জিনিয়ারিং","কম্পিউটার সায়েন্স"],
+            France:["ব্যবসায় প্রশাসন","ইঞ্জিনিয়ারিং"], Netherlands:["কৃষি","ইঞ্জিনিয়ারিং"],
+            Sweden:["ইঞ্জিনিয়ারিং","জনস্বাস্থ্য"], Ireland:["কম্পিউটার সায়েন্স","মেডিসিন"],
+            "New Zealand":["কৃষি","জনস্বাস্থ্য"]
+        };
+        const OIC = ["বাংলাদেশ","পাকিস্তান","মিশর","ইন্দোনেশিয়া","মালয়েশিয়া","নাইজেরিয়া","তুরস্ক"];
+        const CW = ["বাংলাদেশ","ভারত","পাকিস্তান","শ্রীলঙ্কা","যুক্তরাজ্য","কানাডা","অস্ট্রেলিয়া"];
+        function calculateAge(bd) {
+            if (!bd) return 0;
+            const t = new Date(), b = new Date(bd);
+            let a = t.getFullYear() - b.getFullYear();
+            if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--;
+            return a;
+        }
+        function checkEligibility(st, sch) {
+            if (sch.deadline && new Date(sch.deadline) < new Date()) return false;
+            if (sch.max_age && calculateAge(st.birthdate) > sch.max_age) return false;
+            if (sch.min_work_exp && st.work_experience < sch.min_work_exp) return false;
+            if (sch.passport_mandatory === 'হ্যাঁ' && !st.has_passport) return false;
+            const cr = sch.criteria || {};
+            if (cr.min_ssc_gpa && st.ssc_gpa < cr.min_ssc_gpa) return false;
+            if (cr.min_hsc_gpa && st.hsc_gpa < cr.min_hsc_gpa) return false;
+            if (cr.min_ug_cgpa && st.ug_cgpa && st.ug_cgpa < cr.min_ug_cgpa) return false;
+            if (sch.eligibility === 'ওআইসি' && !OIC.includes(st.nationality)) return false;
+            if (sch.eligibility === 'কমনওয়েলথ' && !CW.includes(st.nationality)) return false;
+            return true;
+        }
+        function computeWeightedScore(st, sch) {
+            if (!checkEligibility(st, sch)) return null;
+            const w = { academic:30, language:20, workRes:20, extra:15, completeness:10, synergy:5 };
+            let ac = 0;
+            if (st.ssc_gpa) ac += (st.ssc_gpa/5)*35;
+            if (st.hsc_gpa) ac += (st.hsc_gpa/5)*35;
+            if (st.ug_cgpa) ac += (st.ug_cgpa/4)*30;
+            else if (st.target_degree !== 'ব্যাচেলর') ac += 10;
+            let lang = 0;
+            if (st.has_english_cert) {
+                const ielts = parseFloat(st.english_scores['IELTS']);
+                if (!isNaN(ielts)) {
+                    if (ielts>=8) lang=70; else if (ielts>=7.5) lang=60; else if (ielts>=7) lang=50;
+                    else if (ielts>=6.5) lang=35; else if (ielts>=6) lang=20;
+                } else lang=30;
+            } else lang=5;
+            const tl = COUNTRY_LANGUAGE_MAP[sch.country];
+            if (tl) {
+                const kn = st.other_languages.find(l => l.language === tl);
+                if (kn) {
+                    if (['B2','C1','C2','N2','N1','HSK5','HSK6'].includes(kn.level)) lang+=30;
+                    else lang+=15;
+                }
+            }
+            lang = Math.min(100, lang);
+            let wr = 0;
+            const yrs = st.work_experience;
+            wr += Math.min(40, yrs*8*(yrs<0.5?0.2:yrs<1?0.4:yrs<2?0.6:yrs<5?0.8:1));
+            wr += Math.min(30, st.research_projects*8);
+            wr += Math.min(20, st.publications*6);
+            if (st.intl_exposure) wr += 10;
+            wr = Math.min(100, wr);
+            let extra = 0;
+            if (!st.extracurriculars.includes('কোনোই_না') && st.extracurriculars.length > 0) {
+                const ewt = { নেতৃত্ব:20, স্বেচ্ছাসেবী:12, খেলাধুলা:8, বিতর্ক:12, সাংস্কৃতিক:8, পুরস্কার:15, ক্লাব:6, প্রতিযোগিতা:15, শিক্ষকতা:8 };
+                st.extracurriculars.forEach(e => extra += (ewt[e]||0));
+                if (st.extracurriculars.length >= 5) extra += 15;
+                else if (st.extracurriculars.length >= 3) extra += 8;
+            } else extra = 5;
+            extra = Math.min(100, extra);
+            let comp = 0;
+            if (st.has_english_cert) comp += 25;
+            if (st.has_passport) comp += 25;
+            if (st.work_experience > 0 || st.research_projects > 0) comp += 25;
+            if (!st.extracurriculars.includes('কোনোই_না') && st.extracurriculars.length > 0) comp += 25;
+            let syn = 30;
+            if ((COUNTRY_FIELD_SYNERGY[sch.country]||[]).includes(st.preferred_field) || st.preferred_country === sch.country) syn = 100;
+            let raw = (ac*w.academic + lang*w.language + wr*w.workRes + extra*w.extra + comp*w.completeness + syn*w.synergy) / 100;
+            raw = Math.min(100, raw);
+            raw *= { low:1.0, mid:0.9, high:0.75, extreme:0.55 }[sch.competition] || 0.8;
+            raw *= (comp/100);
+            return Math.round(raw);
+        }
+
+        // ── Document Checklist (full database) ──
+        const SCHOLARSHIP_FULL_DOCS = {
+            "DAAD": [
+                {doc:"Online Application Form (DAAD Portal)", category:"application"},
+                {doc:"CV — Europass Template (max 2 pages)", category:"personal"},
+                {doc:"Letter of Motivation (max 2 pages, hand-signed)", category:"essay"},
+                {doc:"Recommendation Letter from Employer (letterhead, stamped, signed)", category:"reference"},
+                {doc:"Higher Education Degree Certificates (certified translation)", category:"academic"},
+                {doc:"Full Transcript of Records (incl. grading scale)", category:"academic"},
+                {doc:"Proof of English Proficiency (IELTS 6.5+ / TOEFL 90+)", category:"language"},
+                {doc:"List of Publications (if applicable)", category:"research"},
+                {doc:"DAAD Checklist Form (hand-signed, place & date)", category:"application"},
+                {doc:"APS Certificate (for China, India, Vietnam applicants)", category:"special"}
+            ],
+            "Chevening": [
+                {doc:"Online Application (4 essays: Leadership, Networking, Study Plan, Career Plan)", category:"essay"},
+                {doc:"2 Reference Letters (academic or professional, on letterhead)", category:"reference"},
+                {doc:"Unconditional Offer Letter from a UK University", category:"academic"},
+                {doc:"Undergraduate Degree Certificate", category:"academic"},
+                {doc:"Work Experience Proof (2,800 hours minimum)", category:"work"},
+                {doc:"Valid Passport or National ID", category:"identity"},
+                {doc:"English Language Certificate (IELTS 6.5+ recommended)", category:"language"},
+                {doc:"Short Biography (professional summary)", category:"personal"}
+            ],
+            "MEXT": [
+                {doc:"MEXT Application Form (prescribed form with photo)", category:"application"},
+                {doc:"Field of Study and Research Plan", category:"essay"},
+                {doc:"Academic Transcripts (all years)", category:"academic"},
+                {doc:"Graduation Certificate / Diploma (original + English translation)", category:"academic"},
+                {doc:"2 Recommendation Letters (from professors)", category:"reference"},
+                {doc:"Certificate of Health (prescribed MEXT medical form)", category:"special"},
+                {doc:"Passport Copy (photo page)", category:"identity"},
+                {doc:"Recent Passport-Size Photograph (within 6 months)", category:"identity"}
+            ],
+            "Erasmus": [
+                {doc:"CV — Europass Template (English)", category:"personal"},
+                {doc:"Bachelor Degree Certificate (original language + English translation)", category:"academic"},
+                {doc:"Academic Transcripts (all years, original + English)", category:"academic"},
+                {doc:"Motivation Letter (max 1000 words, programme-specific)", category:"essay"},
+                {doc:"2 Recommendation Letters (academic referees)", category:"reference"},
+                {doc:"English Proficiency Certificate (IELTS 6.5+ / TOEFL 90+ / C1 Advanced)", category:"language"},
+                {doc:"Passport-Type Photograph (recent)", category:"identity"},
+                {doc:"Copy of Passport (photo page)", category:"identity"},
+                {doc:"Work Certificate (if applicable)", category:"work"}
+            ],
+            "CSC": [
+                {doc:"CSC Online Application Form", category:"application"},
+                {doc:"Passport Photo Page (valid 12+ months)", category:"identity"},
+                {doc:"Notarized Highest Diploma (English/Chinese translation)", category:"academic"},
+                {doc:"Academic Transcripts (all years, English/Chinese)", category:"academic"},
+                {doc:"Language Proficiency: HSK or IELTS/TOEFL", category:"language"},
+                {doc:"Study Plan / Research Plan (undergrad ≥200 words, postgrad ≥800 words)", category:"essay"},
+                {doc:"2 Recommendation Letters (professors)", category:"reference"},
+                {doc:"Foreigner Physical Examination Form (valid 6 months)", category:"special"},
+                {doc:"Non-Criminal Record Certificate (valid 6 months)", category:"special"},
+                {doc:"Pre-Admission Letter (if available)", category:"academic"}
+            ],
+            "Fulbright": [
+                {doc:"Online Application", category:"application"},
+                {doc:"Academic Transcripts & Diplomas (official certified copies)", category:"academic"},
+                {doc:"3 Letters of Reference", category:"reference"},
+                {doc:"Resume/CV", category:"personal"},
+                {doc:"Copy of Passport Biodata Page", category:"identity"},
+                {doc:"TOEFL Score Report (min 80 IBT)", category:"language"},
+                {doc:"GRE Score Report (required in most fields)", category:"test"},
+                {doc:"GMAT Score Report (MBA/business)", category:"test"},
+                {doc:"Writing Sample (humanities, social sciences, doctoral)", category:"research"}
+            ],
+            "Commonwealth": [
+                {doc:"Online Application (CSC Electronic Application System)", category:"application"},
+                {doc:"Full Transcripts (all higher education qualifications)", category:"academic"},
+                {doc:"2 References (PDF, signed, on letterhead)", category:"reference"},
+                {doc:"Passport or National ID", category:"identity"},
+                {doc:"Development Impact Statement (500+ words)", category:"essay"},
+                {doc:"IELTS/TOEFL Certificate (if required by university)", category:"language"},
+                {doc:"UK University Offer Letter", category:"academic"}
+            ],
+            "Türkiye": [
+                {doc:"Valid Passport or National ID Card", category:"identity"},
+                {doc:"Recent Passport-Size Photograph (within 1 year)", category:"identity"},
+                {doc:"National Exam Results (SSC/HSC)", category:"academic"},
+                {doc:"Diploma or Temporary Graduation Certificate (attested)", category:"academic"},
+                {doc:"Academic Transcript (CGPA clearly indicated)", category:"academic"},
+                {doc:"GRE/GMAT/SAT Score (if required)", category:"test"},
+                {doc:"TOEFL/DELF Language Certificate (if required)", category:"language"},
+                {doc:"Research Proposal + Written Research Sample (PhD only)", category:"research"},
+                {doc:"Personal Statement/Motivation Letter (250-500 words)", category:"essay"}
+            ],
+            "GKS": [
+                {doc:"Online Application (NIIED portal)", category:"application"},
+                {doc:"Personal Statement (prescribed format)", category:"essay"},
+                {doc:"Study Plan (prescribed format)", category:"essay"},
+                {doc:"2 Recommendation Letters", category:"reference"},
+                {doc:"Graduation Certificate / Diploma", category:"academic"},
+                {doc:"Academic Transcripts (CGPA stated)", category:"academic"},
+                {doc:"Proof of Citizenship: Birth Certificate (Apostille) + Parents' Passports/ID", category:"identity"},
+                {doc:"Personal Medical Assessment (prescribed form)", category:"special"},
+                {doc:"Passport Copy (preferred) or National ID", category:"identity"}
+            ],
+            "Australia_Awards": [
+                {doc:"Passport (Proof of Citizenship — attested/notarised)", category:"identity"},
+                {doc:"Degree Certificates (attested/notarised)", category:"academic"},
+                {doc:"Academic Transcripts/Mark Sheets (all years, attested/notarised)", category:"academic"},
+                {doc:"IELTS, TOEFL, or PTE Academic Results (valid at 1 Jan 2026)", category:"language"},
+                {doc:"Academic Referee Reports (prescribed template)", category:"reference"},
+                {doc:"Employment Referee Report (prescribed template)", category:"reference"},
+                {doc:"Development Impact and Linkages Plan (DILP)", category:"essay"},
+                {doc:"Curriculum Vitae (CV) — prescribed template", category:"personal"},
+                {doc:"Current Employment Letter (attested)", category:"work"},
+                {doc:"Research Proposal (research students only)", category:"research"},
+                {doc:"In-Principle Support Evidence from Supervisor", category:"research"}
+            ],
+            "Manaaki": [
+                {doc:"Online Application Form", category:"application"},
+                {doc:"Degree Certificates and Transcripts", category:"academic"},
+                {doc:"English Proficiency Test: IELTS 5.5+", category:"language"},
+                {doc:"Passport Copy (verified)", category:"identity"},
+                {doc:"Curriculum Vitae (CV)", category:"personal"},
+                {doc:"Motivation Letter", category:"essay"},
+                {doc:"Recommendation Letters", category:"reference"},
+                {doc:"Health Check (if requested)", category:"special"}
+            ],
+            "SI": [
+                {doc:"Passport Copy or National ID", category:"identity"},
+                {doc:"CV — Swedish Institute Prescribed Format", category:"personal"},
+                {doc:"Motivation Letter — SI Prescribed Template", category:"essay"},
+                {doc:"2 Reference Letters — SI Prescribed Format", category:"reference"},
+                {doc:"Proof of Work Experience (3,000 hours minimum)", category:"work"},
+                {doc:"Proof of Leadership Experience", category:"work"},
+                {doc:"Application Summary from UniversityAdmissions.se", category:"academic"},
+                {doc:"Admission to Swedish Master's Programme", category:"academic"}
+            ],
+            "Eiffel": [
+                {doc:"Copy of Passport or National Identity Document", category:"identity"},
+                {doc:"Curriculum Vitae — CV (1-2 pages)", category:"personal"},
+                {doc:"Motivation Letter", category:"essay"},
+                {doc:"Academic Transcripts (last 3 years)", category:"academic"},
+                {doc:"Official Class Rankings", category:"academic"},
+                {doc:"Language Certificate or Diploma (non-French speakers)", category:"language"},
+                {doc:"Copies of Higher Education Diplomas", category:"academic"},
+                {doc:"Draft Thesis Proposal (PhD applicants only)", category:"research"}
+            ]
+        };
+
+        function getScholarshipDocs(scholarshipName) {
+            const name = scholarshipName || '';
+            for (const [key, docs] of Object.entries(SCHOLARSHIP_FULL_DOCS)) {
+                if (name.includes(key)) return { key, docs };
+            }
+            return { key: 'General', docs: [
+                {doc:"Online Application Form", category:"application"},
+                {doc:"Academic Transcripts & Degree Certificates (English translation)", category:"academic"},
+                {doc:"Curriculum Vitae / Résumé", category:"personal"},
+                {doc:"Motivation Letter / Statement of Purpose", category:"essay"},
+                {doc:"2-3 Recommendation Letters", category:"reference"},
+                {doc:"Proof of English Proficiency (IELTS/TOEFL)", category:"language"},
+                {doc:"Valid Passport Copy", category:"identity"}
+            ]};
+        }
+
+        function generateDocumentChecklistHTML(matchedScholarships) {
+            if (!matchedScholarships || matchedScholarships.length === 0) return '';
+            const top5 = matchedScholarships.slice(0, 5);
+            let html = '<h3>📋 প্রয়োজনীয় ডকুমেন্ট চেকলিস্ট (Top Matched Scholarships)</h3>';
+            html += '<p style="font-size:0.7rem;color:var(--text-secondary);">তোমার top-matched স্কলারশিপগুলোর জন্য ডকুমেন্টের বিস্তারিত তালিকা।</p>';
+            top5.forEach((sch) => {
+                const { docs } = getScholarshipDocs(sch.scholarship_name);
+                const catColors = {
+                    application: '#6c5ce7', personal: '#00cec9', essay: '#ff8c00',
+                    reference: '#e84393', academic: '#0984e3', language: '#00b894',
+                    work: '#fdcb6e', identity: '#636e72', research: '#a29bfe',
+                    test: '#d63031', special: '#e17055'
+                };
+                html += `<div class="doc-checklist"><h5>📌 ${sch.scholarship_name} (${sch.matchScore}% Match) — ${sch.country}</h5><ol style="list-style:none;padding:0;">`;
+                docs.forEach(d => {
+                    const color = catColors[d.category] || '#636e72';
+                    html += `<li style="padding:0.15rem 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.4rem;">
+                        <span style="display:inline-block;width:18px;height:18px;background:${color}22;border:1px solid ${color};border-radius:4px;text-align:center;line-height:18px;font-size:0.55rem;color:${color};flex-shrink:0;">✓</span>
+                        <span style="font-size:0.7rem;">${d.doc}</span>
+                    </li>`;
+                });
+                html += '</ol></div>';
+            });
+            return html;
+        }
+
+        async function findScholarships() {
+            if (!validateStudentForm()) return;
+            const st = collectStudentData();
+            try { await db.collection("studentData").add({...st, uid: auth.currentUser?.uid, timestamp: firebase.firestore.FieldValue.serverTimestamp()}); } catch(e){}
+            await loadScholarships();
+            document.getElementById('student-form-panel').classList.add('hidden');
+            document.getElementById('results-panel').classList.remove('hidden');
+            document.getElementById('loading-area').classList.remove('hidden');
+            const res = [];
+            for (const sch of allScholarships) {
+                const sc = computeWeightedScore(st, sch);
+                if (sc !== null) res.push({...sch, matchScore: sc});
+            }
+            res.sort((a,b) => b.matchScore - a.matchScore);
+            displayResults(res, st);
+            document.getElementById('loading-area').classList.add('hidden');
+        }
+
+        function displayResults(matched, st) {
+            const bd = {
+                academic: Math.round((st.ssc_gpa/5)*35 + (st.hsc_gpa/5)*35 + ((st.ug_cgpa||0)/4)*30),
+                language: Math.round(st.has_english_cert ? (parseFloat(st.english_scores['IELTS'])>=7.5?60:35) : 5),
+                workRes: Math.round(Math.min(10, st.work_experience*2) + st.research_projects*2 + st.publications*2 + (st.intl_exposure?5:0)),
+                extra: Math.round(st.extracurriculars.includes('কোনোই_না') ? 3 : Math.min(15, st.extracurriculars.length*3)),
+                completeness: Math.round((st.has_english_cert?25:0) + (st.has_passport?25:0) + (st.work_experience>0||st.research_projects>0?25:0) + (!st.extracurriculars.includes('কোনোই_না')&&st.extracurriculars.length>0?25:0))
+            };
+            const total = Math.min(100, bd.academic*0.3 + bd.language*0.2 + bd.workRes*0.2 + bd.extra*0.15 + bd.completeness*0.1 + 5);
+            document.getElementById('profile-score-section').innerHTML = `
+                <h4>📊 প্রোফাইল স্কোর</h4>
+                <div class="profile-score-bar"><div class="profile-score-fill" style="width:${total}%;"></div></div>
+                <p><strong>${total}/100</strong> — ${total>=80?'অসাধারণ!':total>=60?'ভালো, উন্নতি সম্ভব।':total>=40?'প্রস্তুতি দরকার।':'অনেক উন্নতি প্রয়োজন।'}</p>
+                <div class="score-breakdown">
+                    <div>📚 একাডেমিক: ${bd.academic}/35 ${getTierLabel(bd.academic,35)}</div>
+                    <div>🗣️ ভাষা: ${bd.language}/25 ${getTierLabel(bd.language,25)}</div>
+                    <div>💼 গবেষণা/কাজ: ${bd.workRes}/20 ${getTierLabel(bd.workRes,20)}</div>
+                    <div>🏆 সহ-শিক্ষা: ${bd.extra}/15 ${getTierLabel(bd.extra,15)}</div>
+                    <div>📋 কমপ্লিটনেস: ${bd.completeness}/100</div>
+                </div>`;
+            const md = document.getElementById('match-results');
+            if (matched.length === 0) md.innerHTML = '<p>❌ কোনো যোগ্য স্কলারশিপ পাওয়া যায়নি।</p>';
+            else {
+                md.innerHTML = `<h3>✅ ${matched.length}টি স্কলারশিপ মিলেছে</h3>`;
+                matched.forEach(sch => {
+                    const cc = { low:'comp-low', mid:'comp-mid', high:'comp-high', extreme:'comp-extreme' }[sch.competition]||'';
+                    const docs = getScholarshipDocs(sch.scholarship_name).docs;
+                    const did = 'desc_'+Math.random().toString(36).slice(2);
+                    md.innerHTML += `<div class="scholarship-card">
+                        <strong>${sch.scholarship_name}</strong> <span class="competition-badge ${cc}">${sch.competition}</span>
+                        <br>${sch.university_name} | ${sch.country} | ⏱️ ${sch.deadline}
+                        <br><span class="match-badge">${sch.matchScore}% Match</span>
+                        <button onclick="document.getElementById('${did}').classList.toggle('hidden')" style="background:none;border:1px solid #4a4a6a;color:#ccc;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.7rem;">📄 ডিটেইলস</button>
+                        <div id="${did}" class="hidden doc-checklist">
+                            <h5>📋 ডকুমেন্ট:</h5><ol>${docs.map(d=>`<li>${d.doc}</li>`).join('')}</ol>
+                            <p>${sch.description||''}</p>
+                        </div>
+                    </div>`;
+                });
+            }
+            md.classList.remove('hidden');
+
+            // Document Checklist Section
+            const docSection = document.getElementById('documents-checklist-section');
+            if (matched.length > 0) {
+                docSection.innerHTML = generateDocumentChecklistHTML(matched);
+                docSection.classList.remove('hidden');
+            } else {
+                docSection.classList.add('hidden');
+            }
+
+            // Suggestions
+            const sd = document.getElementById('suggestions-container');
+            sd.innerHTML = '<h3>🧠 পরামর্শ</h3><div class="suggestions-grid"></div>';
+            const grid = sd.querySelector('.suggestions-grid');
+            const tips = generateSuggestions(matched, st);
+            const cats = { academic:[], language:[], docs:[], finance:[], destination:[], extracurricular:[] };
+            tips.forEach(t => cats[t.category].push(t.text));
+            for (const [key, title] of [['academic','📚 একাডেমিক'],['language','🗣️ ভাষা'],['docs','🛂 ডকুমেন্ট'],['finance','💰 আর্থিক'],['destination','🌍 গন্তব্য'],['extracurricular','🏆 সহ-শিক্ষা']]) {
+                if (cats[key].length) {
+                    const dv = document.createElement('div');
+                    dv.className = 'suggestion-category';
+                    dv.innerHTML = `<h4>${title}</h4>` + cats[key].map(i => `<div class="suggestion-item">${i}</div>`).join('');
+                    grid.appendChild(dv);
+                }
+            }
+            sd.classList.remove('hidden');
+        }
+
+        function getTierLabel(score, max) {
+            const pct = score/max;
+            if (pct>=0.85) return '<span class="tier-badge tier-a">A</span>';
+            if (pct>=0.65) return '<span class="tier-badge tier-b">B</span>';
+            if (pct>=0.40) return '<span class="tier-badge tier-c">C</span>';
+            return '<span class="tier-badge tier-d">D</span>';
+        }
+
+        function generateSuggestions(matched, st) {
+            const tips = [];
+            tips.push({category:'academic', text:`তোমার টার্গেট ডিগ্রি ${st.target_degree}-তে ${matched.length}টি স্কলারশিপ পাওয়া গেছে।`});
+            if (st.ssc_gpa < 4.5) tips.push({category:'academic', text:`SSC GPA ${st.ssc_gpa} — 4.50+ করলে আরও সুযোগ।`});
+            if (st.hsc_gpa < 4.5) tips.push({category:'academic', text:`HSC GPA ${st.hsc_gpa} — 4.50+ করলে ভালো।`});
+            if (st.ug_cgpa && st.ug_cgpa < 3.5) tips.push({category:'academic', text:`CGPA ${st.ug_cgpa} — 3.50+ দরকার।`});
+            if (!st.has_english_cert) tips.push({category:'language', text:'ইংরেজি সার্টিফিকেট দাও। IELTS 6.5+ minimum।'});
+            else {
+                const ielts = parseFloat(st.english_scores['IELTS']);
+                if (!isNaN(ielts) && ielts < 7.0) tips.push({category:'language', text:`IELTS ${ielts} — 7.0+ করো।`});
+            }
+            if (!st.has_passport) tips.push({category:'docs', text:'পাসপোর্ট করো।'});
+            tips.push({category:'docs', text:'SOP ও LOR তৈরি রাখো।'});
+            if (st.extracurriculars.includes('কোনোই_না') || st.extracurriculars.length === 0) tips.push({category:'extracurricular', text:'কোনো extracurricular নেই — যোগ করো।'});
+            else if (st.extracurriculars.length < 3) tips.push({category:'extracurricular', text:'আরও extracurricular যোগ করো।'});
+            const cTips = {
+                USA:['Fulbright: 2 years work exp, GRE 310+, IELTS 7.0+।'],
+                Germany:['DAAD: CGPA 3.5+, জার্মান B1+ জানলে priority।'],
+                Japan:['MEXT: Research proposal গুরুত্বপূর্ণ।'],
+                China:['CSC: Study Plan সবচেয়ে গুরুত্বপূর্ণ।'],
+                UK:['Chevening: 2 years work exp, IELTS 6.5+।'],
+                Canada:['Lester B. Pearson: exceptional academic + leadership।'],
+                Australia:['Australia Awards: IELTS 6.5+, development impact statement।']
+            };
+            if (cTips[st.preferred_country]) cTips[st.preferred_country].forEach(t => tips.push({category:'destination', text:t}));
+            tips.push({category:'destination', text:'জার্মানি, তুরস্ক, চীন, জাপান — বাংলাদেশিদের জন্য সবচেয়ে বেশি স্কলারশিপ।'});
+            return tips;
+        }
+
+        function goBackToForm() {
+            document.getElementById('results-panel').classList.add('hidden');
+            document.getElementById('student-form-panel').classList.remove('hidden');
+            window.scrollTo({top:0, behavior:'smooth'});
+        }
+    </script>
 </body>
 </html>
