@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>স্কলারশিপ পোর্টাল | For BANGLADESHI Students</title>
+  <title>স্কলারশিপ পোর্টাল | Student & Admin</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <style>
+    /* (সকল CSS আগের মতোই অপরিবর্তিত) */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       --bg: #0a0a0f; --surface: #111122; --text: #e0e0ff; --text-secondary: #a0a0c0;
@@ -156,15 +157,15 @@
   </style>
 </head>
 <body>
-  <!-- Admin floating button -->
   <button class="admin-fab" onclick="openAdminModal()" title="অ্যাডমিন">⋮</button>
 
-  <!-- STUDENT AUTH PANEL (initially visible) -->
+  <!-- STUDENT AUTH PANEL -->
   <div class="animated-border-panel" id="auth-panel">
+    <!-- ... (unchanged) ... -->
     <div class="header">
       <h1>🔐 লগইন / রেজিস্ট্রেশন</h1>
       <p>প্রোফাইল সংরক্ষণ করতে এবং নিরাপদে স্কলারশিপ খুঁজতে লগইন করো</p>
-      <div class="developer-credit">Developed by AHNAF TAHMID ARJON</div>
+      <div class="developer-credit">Developed by AHNAF YAHMID ARJON</div>
     </div>
     <div id="auth-mode" style="display:flex;gap:0.5rem;margin-bottom:1rem;">
       <button class="btn" style="flex:1;background:#555;" id="show-login" onclick="showAuthForm('login')">লগইন</button>
@@ -187,15 +188,15 @@
     <p id="auth-error" class="error"></p>
   </div>
 
-  <!-- STUDENT FORM PANEL (hidden until authenticated) -->
+  <!-- STUDENT FORM PANEL (unchanged) -->
   <div class="animated-border-panel hidden" id="student-form-panel">
+    <!-- ... (all accordions remain exactly as in the previous code) ... -->
     <div class="header">
       <h1>🎓 তোমার স্বপ্নের স্কলারশিপ খুঁজো</h1>
       <p>নিচের তথ্য পূরণ করো, মিলিয়ে দেবো সেরা সুযোগ</p>
       <div class="developer-credit">Developed by AHNAF YAHMID ARJON</div>
     </div>
 
-    <!-- Personal Info Accordion (open by default) -->
     <div class="accordion-item open">
       <div class="accordion-header" onclick="toggleAccordion(this)"><h3>👤 ব্যক্তিগত তথ্য</h3><span class="arrow">▼</span></div>
       <div class="accordion-body">
@@ -213,7 +214,6 @@
       </div>
     </div>
 
-    <!-- Education Accordion -->
     <div class="accordion-item">
       <div class="accordion-header" onclick="toggleAccordion(this)"><h3>📚 শিক্ষাগত যোগ্যতা</h3><span class="arrow">▼</span></div>
       <div class="accordion-body">
@@ -228,7 +228,6 @@
       </div>
     </div>
 
-    <!-- Language Accordion -->
     <div class="accordion-item">
       <div class="accordion-header" onclick="toggleAccordion(this)"><h3>🗣️ ভাষা দক্ষতা</h3><span class="arrow">▼</span></div>
       <div class="accordion-body">
@@ -251,7 +250,6 @@
       </div>
     </div>
 
-    <!-- Work & Research Accordion -->
     <div class="accordion-item">
       <div class="accordion-header" onclick="toggleAccordion(this)"><h3>💼 কাজ ও গবেষণা</h3><span class="arrow">▼</span></div>
       <div class="accordion-body">
@@ -262,7 +260,6 @@
       </div>
     </div>
 
-    <!-- Extracurricular Accordion -->
     <div class="accordion-item">
       <div class="accordion-header" onclick="toggleAccordion(this)"><h3>🏆 সহ-শিক্ষা</h3><span class="arrow">▼</span></div>
       <div class="accordion-body">
@@ -272,7 +269,6 @@
       </div>
     </div>
 
-    <!-- Financial Accordion -->
     <div class="accordion-item">
       <div class="accordion-header" onclick="toggleAccordion(this)"><h3>💰 আর্থিক অবস্থা</h3><span class="arrow">▼</span></div>
       <div class="accordion-body">
@@ -294,7 +290,6 @@
       </div>
     </div>
 
-    <!-- Docs & Destination Accordion -->
     <div class="accordion-item">
       <div class="accordion-header" onclick="toggleAccordion(this)"><h3>🛂 ডকুমেন্ট ও গন্তব্য</h3><span class="arrow">▼</span></div>
       <div class="accordion-body">
@@ -321,8 +316,9 @@
     <p id="form-error" class="error"></p>
   </div>
 
-  <!-- RESULTS PANEL -->
+  <!-- RESULTS PANEL (unchanged) -->
   <div class="animated-border-panel hidden" id="results-panel">
+    <!-- ... -->
     <div class="header"><h1>✨ ফলাফল ও পরামর্শ</h1></div>
     <div id="profile-score-section"></div>
     <div id="loading-area">
@@ -334,7 +330,7 @@
     <button class="btn" onclick="goBackToForm()">🔄 আবার খুঁজো</button>
   </div>
 
-  <!-- ADMIN MODAL -->
+  <!-- ADMIN MODAL (with fix) -->
   <div class="modal-overlay hidden" id="admin-modal">
     <div class="modal-content">
       <button class="close-modal" onclick="closeAdminModal()">✕</button>
@@ -382,7 +378,7 @@
   </div>
 
   <script>
-    // Firebase config (your own)
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAj0NsmQNhIjPqbyxRkV5fnQ_dZtBtNXwY",
       authDomain: "scholarbd-9084f.firebaseapp.com",
@@ -427,7 +423,6 @@
     }
     function studentLogout() { auth.signOut(); }
 
-    // Password reset
     function resetPassword() {
       const email = document.getElementById('login-email').value.trim();
       if (!email) {
@@ -449,7 +444,6 @@
       if (user) {
         document.getElementById('auth-panel').classList.add('hidden');
         document.getElementById('student-form-panel').classList.remove('hidden');
-        // Pre-fill email field (optional) from auth email
         if (!document.getElementById('email').value) {
           document.getElementById('email').value = user.email || '';
         }
@@ -571,7 +565,6 @@
     async function findScholarships() {
       if (!validateStudentForm()) return;
       const student = collectStudentData();
-      // Save to Firestore with user UID
       try {
         await db.collection("studentData").add({
           ...student,
@@ -709,18 +702,58 @@
       window.scrollTo({top:0,behavior:'smooth'});
     }
 
-    // ----- ADMIN FUNCTIONS -----
-    function openAdminModal() { document.getElementById('admin-modal').classList.remove('hidden'); }
-    function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); }
-    function adminLogin() {
-      auth.signInWithEmailAndPassword(document.getElementById('admin-email').value, document.getElementById('admin-password').value)
-        .then(() => {
-          document.getElementById('admin-login-area').classList.add('hidden');
-          document.getElementById('admin-dashboard').classList.remove('hidden');
-          loadAdminList();
-        }).catch(e => document.getElementById('admin-login-error').innerText = e.message);
+    // ----- ADMIN (FIXED) -----
+    function openAdminModal() {
+      document.getElementById('admin-modal').classList.remove('hidden');
+      // Reset to login view if someone is logged out
+      if (!auth.currentUser) {
+        document.getElementById('admin-login-area').classList.remove('hidden');
+        document.getElementById('admin-dashboard').classList.add('hidden');
+      }
     }
-    function adminLogout() { auth.signOut(); document.getElementById('admin-dashboard').classList.add('hidden'); document.getElementById('admin-login-area').classList.remove('hidden'); }
+    function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); }
+
+    async function adminLogin() {
+      const email = document.getElementById('admin-email').value.trim();
+      const pass = document.getElementById('admin-password').value;
+      const errorEl = document.getElementById('admin-login-error');
+      errorEl.innerText = '';
+
+      if (!email || !pass) {
+        errorEl.innerText = 'ইমেইল ও পাসওয়ার্ড দিন';
+        return;
+      }
+
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, pass);
+        const user = userCredential.user;
+        // Check if the user's UID exists in the 'admins' collection
+        const adminDoc = await db.collection("admins").doc(user.uid).get();
+        if (!adminDoc.exists) {
+          // Not an admin — sign out and show error
+          await auth.signOut();
+          errorEl.innerText = 'আপনি অ্যাডমিন হিসেবে অনুমোদিত নন।';
+          return;
+        }
+        // Admin verified, show dashboard
+        document.getElementById('admin-login-area').classList.add('hidden');
+        document.getElementById('admin-dashboard').classList.remove('hidden');
+        loadAdminList();
+      } catch (e) {
+        errorEl.innerText = 'লগইন ব্যর্থ: ' + e.message;
+      }
+    }
+
+    function adminLogout() {
+      auth.signOut();
+      document.getElementById('admin-dashboard').classList.add('hidden');
+      document.getElementById('admin-login-area').classList.remove('hidden');
+      document.getElementById('admin-submit-msg').innerText = '';
+      // Reset admin form fields
+      ['admin_sch_name','admin_sch_university','admin_sch_country','admin_degree','admin_funding','admin_page_link','admin_description'].forEach(id => document.getElementById(id).value='');
+      document.getElementById('admin_deadline').value='';
+    }
+
     function showAdminTab(tab) {
       document.getElementById('admin-add-form').classList.toggle('hidden', tab!=='add');
       document.getElementById('admin-list-area').classList.toggle('hidden', tab!=='list');
@@ -728,6 +761,7 @@
       if (tab==='list') loadAdminList();
       if (tab==='analytics') loadAnalytics();
     }
+
     async function loadAdminList() {
       const list = document.getElementById('scholarship-list');
       list.innerHTML = '';
@@ -739,7 +773,12 @@
         list.appendChild(li);
       });
     }
-    async function deleteScholarship(id) { await db.collection("scholarships").doc(id).delete(); loadAdminList(); }
+
+    async function deleteScholarship(id) {
+      await db.collection("scholarships").doc(id).delete();
+      loadAdminList();
+    }
+
     async function loadAnalytics() {
       const totalSnap = await db.collection("scholarships").get();
       document.getElementById('total-sch').innerText = totalSnap.size;
@@ -747,6 +786,7 @@
       const searchSnap = await db.collection("studentData").where("timestamp",">=",today).get();
       document.getElementById('today-searches').innerText = searchSnap.size;
     }
+
     async function adminSubmitScholarship() {
       const data = {
         scholarship_name: document.getElementById('admin_sch_name').value,
