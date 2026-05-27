@@ -2,94 +2,106 @@
 <html lang="bn">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
   <title>স্কলারশিপ পোর্টাল | Student & Admin</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    :root {
       --bg: #0a0a0f; --surface: #111122; --text: #e0e0ff; --text-secondary: #a0a0c0;
       --primary: #6c5ce7; --accent: #00cec9;
-      --border: rgba(255,255,255,0.08); --card-bg: #111122; --hover-bg: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.06); --card-bg: #111122; --hover-bg: rgba(255,255,255,0.04);
+      --danger: #ff7675; --success: #55efc4; --warn: #ffc107;
+      --radius-sm: 10px; --radius: 14px; --radius-lg: 20px;
+      --font-xs: 0.7rem; --font-sm: 0.8rem; --font-md: 0.9rem; --font-lg: 1.1rem; --font-xl: 1.5rem;
+    }
+    body {
       font-family: 'Segoe UI','Noto Sans Bengali',sans-serif;
       background: var(--bg); color: var(--text);
-      min-height: 100vh; padding: 0; display: flex;
-      flex-direction: column; align-items: center;
-      padding-top: 70px; /* make room for top bar */
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 0 0.5rem 1rem; padding-top: 60px;
+      -webkit-font-smoothing: antialiased; text-rendering: optimizeSpeed;
     }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
-    /* ───── Top bar (always visible) ───── */
+    /* ───── Top bar ───── */
     .top-bar {
-      position: fixed; top:0; left:0; right:0; z-index:300;
+      position: fixed; top:0; left:0; right:0; z-index:300; height: 50px;
       display: flex; justify-content: space-between; align-items: center;
-      background: var(--surface); border-bottom:1px solid var(--border);
-      padding: 0.6rem 1.2rem; height: 52px;
+      background: rgba(17,17,34,0.85); backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom:1px solid var(--border); padding: 0 0.8rem;
     }
-    .top-left {
-      display: flex; align-items: center; gap: 1rem;
-    }
+    .top-left { display: flex; align-items: center; gap: 0.5rem; }
     .developer-credit {
-      font-family: 'Courier New', monospace; font-style: italic;
-      font-size: 0.75rem; color: var(--text-secondary); letter-spacing: 0.5px;
+      font-family: 'Courier New',monospace; font-style: italic;
+      font-size: 0.65rem; color: var(--text-secondary); opacity: 0.8;
+      letter-spacing: 0.3px; white-space: nowrap;
     }
-    .top-actions {
-      display: flex; align-items: center; gap: 0.8rem;
-    }
+    .top-actions { display: flex; align-items: center; gap: 0.4rem; }
     .icon-btn {
-      width: 36px; height: 36px; border-radius: 50%; border:1px solid var(--border);
-      background: transparent; cursor: pointer; font-size: 1.1rem;
+      width: 34px; height: 34px; border-radius: 50%; border:1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: 1rem;
       display: flex; align-items: center; justify-content: center; color: var(--text);
+      transition: 0.15s; -webkit-tap-highlight-color: transparent;
     }
-    .icon-btn:hover { background: var(--hover-bg); }
-    .lang-switch { font-weight: bold; font-size: 0.85rem; cursor: pointer; }
+    .icon-btn:active { background: var(--hover-bg); transform: scale(0.92); }
+    .lang-switch { font-weight: 700; font-size: 0.75rem; cursor: pointer; }
 
-    /* ───── Admin horizontal bar (toggled by ⋮) ───── */
+    /* ───── Admin horizontal bar ───── */
     .admin-bar {
-      position: fixed; top:52px; left:0; right:0; z-index:299;
-      background: var(--surface); border-bottom:1px solid var(--border);
-      display: none;   /* hidden by default, shown when toggled */
-      align-items: center; justify-content: center;
-      padding: 0.7rem 1.2rem;
+      position: fixed; top:50px; left:0; right:0; z-index:299;
+      background: rgba(17,17,34,0.9); backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--border);
+      display: none; align-items: center; justify-content: center;
+      padding: 0.5rem 0.6rem; gap: 0.4rem; flex-wrap: wrap;
     }
     .admin-bar.open { display: flex; }
-
-    .admin-login-area,
-    .admin-dashboard {
-      display: flex; align-items: center; gap:0.6rem; flex-wrap: wrap;
-      justify-content: center;
+    .admin-login-area, .admin-dashboard {
+      display: flex; align-items: center; gap:0.4rem; flex-wrap: wrap; justify-content: center;
     }
-    .admin-login-area input { width: auto; min-width: 150px; }
-    .admin-dashboard .btn { width: auto; margin-top:0; }
+    .admin-login-area input {
+      width: auto; min-width: 120px; padding: 0.45rem 0.6rem;
+      font-size: var(--font-sm); border-radius: 8px;
+    }
+    .admin-dashboard .btn {
+      width: auto; margin-top:0; padding: 0.45rem 0.8rem;
+      font-size: var(--font-sm); border-radius: 20px;
+    }
+    .admin-login-area .btn { width: auto; margin-top:0; padding: 0.45rem 1rem; font-size: var(--font-sm); }
 
-    /* ───── Admin content panels (shown when a tab is active) ───── */
+    /* ───── Admin content panels ───── */
     .admin-content-panel {
-      position: fixed; top:105px; left:50%; transform:translateX(-50%);
-      width:90%; max-width:600px; max-height:70vh; overflow-y:auto;
+      position: fixed; top:100px; left:50%; transform:translateX(-50%);
+      width:94%; max-width:560px; max-height:65vh; overflow-y:auto;
       background: var(--surface); border:1px solid var(--border);
-      border-radius:20px; padding:1.5rem; z-index:280;
-      display: none;
+      border-radius: var(--radius-lg); padding:1.2rem; z-index:280;
+      display: none; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
     .admin-content-panel.show { display: block; }
 
+    /* ───── Main panels ───── */
     .animated-border-panel {
       position: relative; background: var(--surface);
-      border-radius: 20px; width: 100%; max-width: 600px;
-      padding: 1.8rem 1.2rem; margin-bottom: 1.5rem; z-index: 1;
+      border-radius: var(--radius-lg); width: 100%; max-width: 560px;
+      padding: 1.3rem 1rem; margin-bottom: 1rem; z-index: 1;
+      border: 1px solid rgba(255,255,255,0.05);
     }
-    .animated-border-panel::before {
-      content:""; position:absolute; top:0; left:0; right:0; bottom:0;
-      border-radius: inherit; padding: 2px;
-      background: linear-gradient(45deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080);
-      background-size: 400% 400%;
-      animation: neonMove 3s linear infinite;
+    .animated-border-panel::after {
+      content:""; position:absolute; top:-1px; left:-1px; right:-1px; bottom:-1px;
+      border-radius: inherit; padding: 1.5px;
+      background: linear-gradient(135deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080);
+      background-size: 300% 300%;
+      animation: neonMove 4s linear infinite;
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude;
-      pointer-events: none;
+      pointer-events: none; opacity: 0.5;
     }
     @keyframes neonMove {
       0% { background-position: 0% 50%; }
@@ -97,87 +109,148 @@
       100% { background-position: 0% 50%; }
     }
 
+    /* ───── Accordion ───── */
     .accordion-item {
-      position: relative; background: var(--card-bg);
-      border-radius: 10px; margin-bottom: 0.8rem; overflow: hidden;
+      position: relative; background: rgba(255,255,255,0.02);
+      border-radius: var(--radius-sm); margin-bottom: 0.5rem; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.04);
     }
-    .accordion-item::before {
-      content:""; position:absolute; top:0; left:0; right:0; bottom:0;
-      border-radius: inherit; padding: 1.5px;
-      background: linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080);
-      background-size: 300% 300%;
-      animation: neonMove 1.5s linear infinite reverse;
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      pointer-events: none; z-index: 0;
-    }
-    .accordion-header, .accordion-body { position: relative; z-index: 1; }
-
-    .header { text-align: center; margin-bottom: 1.5rem; }
-    .header h1 { font-size: 1.8rem; color: var(--text); margin-bottom: 0.2rem; }
-    .header p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.3rem; }
-
     .accordion-header {
-      padding: 0.9rem 1rem; display: flex; justify-content: space-between;
-      align-items: center; cursor: pointer; background: var(--hover-bg);
-      transition: 0.2s;
+      padding: 0.7rem 0.9rem; display: flex; justify-content: space-between;
+      align-items: center; cursor: pointer; transition: 0.15s;
+      user-select: none; -webkit-user-select: none;
     }
-    .accordion-header h3 { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+    .accordion-header:active { background: rgba(255,255,255,0.03); }
+    .accordion-header h3 { font-size: var(--font-md); font-weight: 600; color: var(--text); }
+    .accordion-header .arrow { font-size: 0.8rem; transition: transform 0.25s; color: var(--text-secondary); }
     .accordion-body {
-      max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.4s ease;
-      padding: 0 1rem;
+      max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease;
+      padding: 0 0.9rem;
     }
-    .accordion-item.open .accordion-body { max-height: 4000px; padding: 0.8rem 1rem; }
+    .accordion-item.open .accordion-body { max-height: 3000px; padding: 0.6rem 0.9rem; }
     .accordion-item.open .accordion-header .arrow { transform: rotate(180deg); }
 
-    .form-group { margin-bottom: 1rem; }
-    label { display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--text-secondary); font-weight: 500; }
+    /* ───── Header ───── */
+    .header { text-align: center; margin-bottom: 1rem; }
+    .header h1 { font-size: var(--font-xl); color: var(--text); margin-bottom: 0.15rem; }
+    .header p { color: var(--text-secondary); font-size: var(--font-sm); }
+
+    /* ───── Form elements ───── */
+    .form-group { margin-bottom: 0.8rem; }
+    label {
+      display: block; font-size: var(--font-sm); margin-bottom: 0.25rem;
+      color: var(--text-secondary); font-weight: 500;
+    }
     input, select, textarea {
-      width: 100%; padding: 0.7rem 0.9rem; border-radius: 8px;
-      border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: white;
-      font-size: 0.9rem; outline: none; transition: 0.2s;
+      width: 100%; padding: 0.6rem 0.8rem; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: white;
+      font-size: var(--font-md); outline: none; transition: 0.15s;
+      -webkit-appearance: none; appearance: none;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,206,201,0.2); }
-    .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.3rem; }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,206,201,0.12);
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0a0c0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 0.8rem center; padding-right: 2.2rem;
+    }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem; }
     .checkbox-group label {
-      background: rgba(255,255,255,0.06); padding: 0.4rem 0.8rem; border-radius: 20px;
-      border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem;
-      display: flex; align-items: center; gap: 0.3rem;
+      background: rgba(255,255,255,0.04); padding: 0.35rem 0.7rem; border-radius: 16px;
+      border: 1px solid var(--border); cursor: pointer; font-size: var(--font-sm);
+      display: flex; align-items: center; gap: 0.3rem; transition: 0.15s;
+      -webkit-tap-highlight-color: transparent;
     }
+    .checkbox-group label:active { background: rgba(108,92,231,0.2); border-color: var(--primary); }
+    .checkbox-group input[type="checkbox"] { width: auto; margin:0; accent-color: var(--accent); }
+    .score-fields { margin-top: 0.4rem; }
+
+    /* ───── Buttons ───── */
     .btn {
-      background: var(--primary); color: white; border: none; padding: 0.8rem 1.2rem;
-      border-radius: 25px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
-      width: 100%; transition: 0.2s; margin-top: 0.8rem;
+      background: var(--primary); color: white; border: none; padding: 0.7rem 1rem;
+      border-radius: 22px; font-size: var(--font-md); font-weight: 600;
+      cursor: pointer; width: 100%; transition: 0.15s; margin-top: 0.6rem;
+      -webkit-tap-highlight-color: transparent; user-select: none;
     }
-    .btn:hover { background: #7c6df0; }
+    .btn:active { transform: scale(0.97); opacity: 0.9; }
     .hidden { display: none !important; }
-    .error { color: #ff7675; text-align: center; margin-top: 0.4rem; font-size: 0.85rem; }
-    .success { color: #55efc4; text-align: center; margin-top: 0.4rem; }
+    .error { color: var(--danger); text-align: center; margin-top: 0.3rem; font-size: var(--font-sm); }
+    .success { color: var(--success); text-align: center; margin-top: 0.3rem; font-size: var(--font-sm); }
 
+    /* ───── Cards ───── */
     .scholarship-card {
-      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1rem; margin-bottom: 0.8rem;
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.8rem; margin-bottom: 0.6rem;
+      transition: 0.15s;
     }
+    .scholarship-card:active { background: rgba(255,255,255,0.04); }
     .match-badge {
-      background: var(--primary); color: white; font-weight: bold;
-      padding: 0.2rem 0.6rem; border-radius: 15px; font-size: 0.8rem;
+      background: var(--primary); color: white; font-weight: 700;
+      padding: 0.15rem 0.5rem; border-radius: 12px; font-size: var(--font-xs);
+      white-space: nowrap;
     }
-    .profile-score-bar { width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; margin:0.5rem 0 0.8rem; overflow:hidden; }
-    .profile-score-fill { height:100%; background:linear-gradient(90deg, var(--primary), var(--accent)); border-radius:4px; transition:width 0.5s; }
-    .suggestions-grid { display:grid; grid-template-columns:1fr; gap:0.6rem; margin-top:0.8rem; }
+    .profile-score-bar {
+      width:100%; height:6px; background:rgba(255,255,255,0.08);
+      border-radius:3px; margin:0.4rem 0 0.6rem; overflow:hidden;
+    }
+    .profile-score-fill {
+      height:100%; background:linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius:3px; transition:width 0.5s ease;
+    }
+    .suggestions-grid { display:grid; grid-template-columns:1fr; gap:0.5rem; margin-top:0.6rem; }
     @media(min-width:480px) { .suggestions-grid { grid-template-columns:1fr 1fr; } }
-    .suggestion-category { background: rgba(255,255,255,0.03); border-radius:10px; padding:0.8rem; border:1px solid var(--border); }
+    .suggestion-category {
+      background: rgba(255,255,255,0.02); border-radius:var(--radius-sm);
+      padding:0.7rem; border:1px solid var(--border);
+    }
+    .suggestion-category h4 { font-size: var(--font-sm); color: var(--text); margin-bottom: 0.3rem; }
+    .suggestion-item {
+      font-size: var(--font-xs); color: var(--text-secondary); margin-bottom: 0.25rem;
+      padding-left: 0.8rem; position: relative; line-height: 1.4;
+    }
+    .suggestion-item::before { content:"▹"; position:absolute; left:0; color: var(--primary); }
 
+    /* ───── Skeleton loading ───── */
+    .skeleton-card {
+      background:rgba(255,255,255,0.02); border-radius:var(--radius);
+      padding:0.8rem; margin-bottom:0.6rem; border:1px solid var(--border);
+    }
+    .skeleton-line {
+      height:0.7rem; background:rgba(255,255,255,0.05); border-radius:4px;
+      margin:0.4rem 0; width:70%;
+    }
+
+    /* ───── Forgot link ───── */
     .forgot-link {
       background: none; border: none; color: var(--accent); text-decoration: underline;
-      cursor: pointer; font-size: 0.85rem; margin-top: 0.3rem;
+      cursor: pointer; font-size: var(--font-sm); margin-top: 0.2rem;
     }
-    .spam-note {
-      font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;
-    }
+    .spam-note { font-size: 0.65rem; color: var(--text-secondary); margin-top: 0.2rem; }
+
+    /* ───── Mobile optimizations ───── */
     @media (max-width:480px) {
-      .animated-border-panel { padding: 1.2rem 0.8rem; }
-      .header h1 { font-size: 1.5rem; }
+      .animated-border-panel { padding: 1rem 0.7rem; border-radius: var(--radius); }
+      .header h1 { font-size: 1.3rem; }
+      .header p { font-size: 0.75rem; }
+      .accordion-header { padding: 0.6rem 0.7rem; }
+      .accordion-header h3 { font-size: 0.85rem; }
+      .accordion-body { padding: 0 0.7rem; }
+      .accordion-item.open .accordion-body { padding: 0.5rem 0.7rem; }
+      input, select, textarea { padding: 0.55rem 0.7rem; font-size: 0.85rem; }
+      .btn { padding: 0.65rem 0.9rem; font-size: 0.9rem; }
+      .admin-bar { padding: 0.4rem 0.4rem; gap: 0.3rem; }
+      .admin-login-area input { min-width: 100px; padding: 0.4rem 0.5rem; font-size: 0.75rem; }
+      .admin-dashboard .btn { padding: 0.4rem 0.6rem; font-size: 0.75rem; }
+      .admin-content-panel { width:96%; padding:1rem; max-height:60vh; top:95px; }
+      .top-bar { padding: 0 0.5rem; }
+      .developer-credit { font-size: 0.55rem; }
+      .icon-btn { width: 30px; height: 30px; font-size: 0.9rem; }
+    }
+    @media (max-width:360px) {
+      .top-left { gap: 0.2rem; }
+      .top-actions { gap: 0.2rem; }
+      .developer-credit { font-size: 0.5rem; }
+      .icon-btn { width: 28px; height: 28px; font-size: 0.8rem; }
     }
   </style>
 </head>
@@ -194,25 +267,25 @@
     </div>
   </div>
 
-  <!-- ───── Admin horizontal bar (toggled by ⋮) ───── -->
+  <!-- ───── Admin horizontal bar ───── -->
   <div class="admin-bar" id="admin-bar">
     <div id="admin-login-area" class="admin-login-area">
-      <input type="email" id="admin-email" placeholder="অ্যাডমিন ইমেইল" style="width:180px;">
-      <input type="password" id="admin-password" placeholder="পাসওয়ার্ড" style="width:150px;">
+      <input type="email" id="admin-email" placeholder="অ্যাডমিন ইমেইল" style="width:140px;">
+      <input type="password" id="admin-password" placeholder="পাসওয়ার্ড" style="width:110px;">
       <button class="btn" onclick="adminLogin()" style="width:auto;">প্রবেশ</button>
       <span id="admin-login-error" class="error"></span>
     </div>
     <div id="admin-dashboard" class="admin-dashboard hidden">
       <button class="btn" onclick="showAdminTab('add')" style="width:auto;">➕ যোগ</button>
-      <button class="btn" onclick="showAdminTab('list')" style="width:auto; background:#555;">📋 তালিকা</button>
-      <button class="btn" onclick="showAdminTab('analytics')" style="width:auto; background:#555;">📊 অ্যানালিটিক্স</button>
-      <button class="btn" onclick="adminLogout()" style="width:auto; background:#666;">লগআউট</button>
+      <button class="btn" onclick="showAdminTab('list')" style="width:auto; background:#444;">📋 তালিকা</button>
+      <button class="btn" onclick="showAdminTab('analytics')" style="width:auto; background:#444;">📊</button>
+      <button class="btn" onclick="adminLogout()" style="width:auto; background:#555;">লগআউট</button>
     </div>
   </div>
 
-  <!-- ───── Admin content panels (appear on tab click) ───── -->
+  <!-- ───── Admin content panels ───── -->
   <div class="admin-content-panel" id="admin-add-form">
-    <h3 style="text-align:center;margin-bottom:1rem;">➕ নতুন স্কলারশিপ যোগ</h3>
+    <h3 style="text-align:center;margin-bottom:0.8rem;">➕ নতুন স্কলারশিপ যোগ</h3>
     <div class="form-group"><label>বৃত্তির নাম</label><input type="text" id="admin_sch_name"></div>
     <div class="form-group"><label>বিশ্ববিদ্যালয়</label><input type="text" id="admin_sch_university"></div>
     <div class="form-group"><label>দেশ</label><input type="text" id="admin_sch_country"></div>
@@ -242,22 +315,22 @@
   </div>
 
   <!-- ───── Main student content ───── -->
-  <div style="width:100%; display:flex; flex-direction:column; align-items:center; margin-top:1rem;">
+  <div style="width:100%; display:flex; flex-direction:column; align-items:center; margin-top:0.3rem;">
     <!-- STUDENT AUTH PANEL -->
     <div class="animated-border-panel" id="auth-panel">
       <div class="header">
         <h1>🔐 লগইন / রেজিস্ট্রেশন</h1>
         <p>প্রোফাইল সংরক্ষণ করতে এবং নিরাপদে স্কলারশিপ খুঁজতে লগইন করো</p>
       </div>
-      <div id="auth-mode" style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-        <button class="btn" style="flex:1;background:#555;" id="show-login" onclick="showAuthForm('login')">লগইন</button>
-        <button class="btn" style="flex:1;background:#555;" id="show-signup" onclick="showAuthForm('signup')">রেজিস্টার</button>
+      <div id="auth-mode" style="display:flex;gap:0.4rem;margin-bottom:0.8rem;">
+        <button class="btn" style="flex:1;background:#444;" id="show-login" onclick="showAuthForm('login')">লগইন</button>
+        <button class="btn" style="flex:1;background:#444;" id="show-signup" onclick="showAuthForm('signup')">রেজিস্টার</button>
       </div>
       <div id="login-form">
         <div class="form-group"><label>ইমেইল</label><input type="email" id="login-email" placeholder="example@mail.com"></div>
         <div class="form-group"><label>পাসওয়ার্ড</label><input type="password" id="login-password" placeholder="••••••"></div>
         <button class="btn" onclick="studentLogin()">প্রবেশ</button>
-        <div style="text-align:center; margin-top:0.5rem;">
+        <div style="text-align:center; margin-top:0.4rem;">
           <button class="forgot-link" onclick="resetPassword()">পাসওয়ার্ড ভুলে গেছেন?</button>
           <p class="spam-note">রিসেট ইমেইল খুজে না পেলে অবশ্যই স্প্যাম বক্স চেক করুন।</p>
         </div>
@@ -270,13 +343,12 @@
       <p id="auth-error" class="error"></p>
     </div>
 
-    <!-- STUDENT FORM PANEL (hidden until authenticated) -->
+    <!-- STUDENT FORM PANEL -->
     <div class="animated-border-panel hidden" id="student-form-panel">
       <div class="header">
         <h1>🎓 তোমার স্বপ্নের স্কলারশিপ খুঁজো</h1>
         <p>নিচের তথ্য পূরণ করো, মিলিয়ে দেবো সেরা সুযোগ</p>
       </div>
-      <!-- all accordions remain exactly as in original code -->
       <div class="accordion-item open">
         <div class="accordion-header" onclick="toggleAccordion(this)"><h3>👤 ব্যক্তিগত তথ্য</h3><span class="arrow">▼</span></div>
         <div class="accordion-body">
@@ -299,7 +371,7 @@
           <div class="form-group"><label>SSC GPA</label><input type="number" step="0.01" id="ssc_gpa" placeholder="5.00"></div>
           <div class="form-group"><label>HSC GPA</label><input type="number" step="0.01" id="hsc_gpa" placeholder="4.80"></div>
           <div class="form-group"><label>স্নাতক CGPA (যদি থাকে)</label><input type="number" step="0.01" id="ug_cgpa" placeholder="3.65"></div>
-          <div class="form-group"><label>স্নাতকের সাবজেক্ট(যদি স্নাতক পাশ করে থাকেন)</label><input type="text" id="ug_subject" placeholder="কম্পিউটার সায়েন্স"></div>
+          <div class="form-group"><label>স্নাতকের সাবজেক্ট</label><input type="text" id="ug_subject" placeholder="কম্পিউটার সায়েন্স"></div>
           <div class="form-group"><label>শিক্ষাবিরতি?</label><select id="education_gap"><option value="না">না</option><option value="হ্যাঁ">হ্যাঁ</option></select></div>
           <div class="form-group"><label>লক্ষ্য ডিগ্রি</label>
             <select id="target_degree"><option value="ব্যাচেলর">ব্যাচেলর</option><option value="মাস্টার্স">মাস্টার্স</option><option value="পিএইচডি">পিএইচডি</option></select>
@@ -386,7 +458,7 @@
       </div>
 
       <button class="btn" onclick="findScholarships()">🔍 স্কলারশিপ খুঁজুন</button>
-      <button class="btn" style="background:#666;margin-top:0.5rem;" onclick="studentLogout()">🔒 লগআউট</button>
+      <button class="btn" style="background:#444;margin-top:0.4rem;" onclick="studentLogout()">🔒 লগআউট</button>
       <p id="form-error" class="error"></p>
     </div>
 
@@ -404,9 +476,8 @@
     </div>
   </div>
 
-  <!-- ───── JavaScript unchanged from original except admin bar logic ───── -->
   <script>
-    // Firebase config (same)
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAj0NsmQNhIjPqbyxRkV5fnQ_dZtBtNXwY",
       authDomain: "scholarbd-9084f.firebaseapp.com",
@@ -420,7 +491,6 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // Language & dark mode toggles (unchanged)
     let currentLang = 'bn';
     function toggleLanguage() {
       currentLang = currentLang === 'bn' ? 'en' : 'bn';
@@ -434,76 +504,52 @@
       document.getElementById('darkToggle').innerHTML = document.body.classList.contains('dark') ? '☀️' : '🌙';
     }
 
-    // Admin bar toggle
     function toggleAdminBar() {
       document.getElementById('admin-bar').classList.toggle('open');
-      // Close any open admin content panels
       document.querySelectorAll('.admin-content-panel').forEach(p => p.classList.remove('show'));
     }
 
-    // Student auth functions (identical to original)
     let currentAuthMode = 'login';
     function showAuthForm(mode) {
       currentAuthMode = mode;
       document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
       document.getElementById('signup-form').classList.toggle('hidden', mode !== 'signup');
-      document.getElementById('show-login').style.background = mode === 'login' ? '#6c5ce7' : '#555';
-      document.getElementById('show-signup').style.background = mode === 'signup' ? '#6c5ce7' : '#555';
+      document.getElementById('show-login').style.background = mode === 'login' ? '#6c5ce7' : '#444';
+      document.getElementById('show-signup').style.background = mode === 'signup' ? '#6c5ce7' : '#444';
     }
     function studentLogin() {
       const email = document.getElementById('login-email').value.trim();
       const pass = document.getElementById('login-password').value;
-      if (!email || !pass) {
-        document.getElementById('auth-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন';
-        return;
-      }
-      auth.signInWithEmailAndPassword(email, pass)
-        .catch(e => document.getElementById('auth-error').innerText = e.message);
+      if (!email || !pass) { document.getElementById('auth-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন'; return; }
+      auth.signInWithEmailAndPassword(email, pass).catch(e => document.getElementById('auth-error').innerText = e.message);
     }
     function studentSignup() {
       const email = document.getElementById('signup-email').value.trim();
       const pass = document.getElementById('signup-password').value;
-      if (!email || !pass) {
-        document.getElementById('auth-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন';
-        return;
-      }
-      auth.createUserWithEmailAndPassword(email, pass)
-        .catch(e => document.getElementById('auth-error').innerText = e.message);
+      if (!email || !pass) { document.getElementById('auth-error').innerText = 'ইমেইল ও পাসওয়ার্ড দিন'; return; }
+      auth.createUserWithEmailAndPassword(email, pass).catch(e => document.getElementById('auth-error').innerText = e.message);
     }
     function studentLogout() { auth.signOut(); }
 
     function resetPassword() {
       const email = document.getElementById('login-email').value.trim();
-      if (!email) {
-        document.getElementById('auth-error').innerText = 'দয়া করে প্রথমে ইমেইল দিন';
-        return;
-      }
+      if (!email) { document.getElementById('auth-error').innerText = 'দয়া করে প্রথমে ইমেইল দিন'; return; }
       auth.sendPasswordResetEmail(email)
-        .then(() => {
-          document.getElementById('auth-error').innerText = '';
-          alert('পাসওয়ার্ড রিসেট ইমেইল পাঠানো হয়েছে। অনুগ্রহ করে ইমেইল চেক করো।');
-        })
-        .catch(error => {
-          document.getElementById('auth-error').innerText = error.message;
-        });
+        .then(() => { document.getElementById('auth-error').innerText = ''; alert('পাসওয়ার্ড রিসেট ইমেইল পাঠানো হয়েছে। অনুগ্রহ করে ইমেইল চেক করো।'); })
+        .catch(error => { document.getElementById('auth-error').innerText = error.message; });
     }
 
     auth.onAuthStateChanged(user => {
       if (user) {
         document.getElementById('auth-panel').classList.add('hidden');
         document.getElementById('student-form-panel').classList.remove('hidden');
-        if (!document.getElementById('email').value) {
-          document.getElementById('email').value = user.email || '';
-        }
-        // Auto-check admin role and adjust admin bar
+        if (!document.getElementById('email').value) document.getElementById('email').value = user.email || '';
         db.collection("admins").doc(user.uid).get().then(doc => {
           if (doc.exists) {
-            // Admin logged in
             document.getElementById('admin-login-area').classList.add('hidden');
             document.getElementById('admin-dashboard').classList.remove('hidden');
             document.getElementById('admin-bar').classList.add('open');
           } else {
-            // Normal student
             document.getElementById('admin-login-area').classList.remove('hidden');
             document.getElementById('admin-dashboard').classList.add('hidden');
             document.getElementById('admin-bar').classList.remove('open');
@@ -520,7 +566,6 @@
       }
     });
 
-    // Admin login with UID check (unchanged logic)
     async function adminLogin() {
       const email = document.getElementById('admin-email').value.trim();
       const pass = document.getElementById('admin-password').value;
@@ -531,18 +576,12 @@
         const userCredential = await auth.signInWithEmailAndPassword(email, pass);
         const user = userCredential.user;
         const adminDoc = await db.collection("admins").doc(user.uid).get();
-        if (!adminDoc.exists) {
-          await auth.signOut();
-          errorEl.innerText = 'আপনি অ্যাডমিন হিসেবে অনুমোদিত নন।';
-          return;
-        }
+        if (!adminDoc.exists) { await auth.signOut(); errorEl.innerText = 'আপনি অ্যাডমিন হিসেবে অনুমোদিত নন।'; return; }
         document.getElementById('admin-login-area').classList.add('hidden');
         document.getElementById('admin-dashboard').classList.remove('hidden');
         errorEl.innerText = '';
         document.getElementById('admin-bar').classList.add('open');
-      } catch (e) {
-        errorEl.innerText = 'লগইন ব্যর্থ: ' + e.message;
-      }
+      } catch (e) { errorEl.innerText = 'লগইন ব্যর্থ: ' + e.message; }
     }
 
     function adminLogout() {
@@ -554,45 +593,25 @@
     }
 
     function showAdminTab(tab) {
-      // Hide all admin content panels
       document.getElementById('admin-add-form').classList.remove('show');
       document.getElementById('admin-list-area').classList.remove('show');
       document.getElementById('admin-analytics').classList.remove('show');
       if (tab === 'add') document.getElementById('admin-add-form').classList.add('show');
-      else if (tab === 'list') {
-        document.getElementById('admin-list-area').classList.add('show');
-        loadAdminList();
-      } else if (tab === 'analytics') {
-        document.getElementById('admin-analytics').classList.add('show');
-        loadAnalytics();
-      }
+      else if (tab === 'list') { document.getElementById('admin-list-area').classList.add('show'); loadAdminList(); }
+      else if (tab === 'analytics') { document.getElementById('admin-analytics').classList.add('show'); loadAnalytics(); }
     }
 
     async function loadAdminList() {
-      const list = document.getElementById('scholarship-list');
-      list.innerHTML = '';
+      const list = document.getElementById('scholarship-list'); list.innerHTML = '';
       const snap = await db.collection("scholarships").get();
-      snap.forEach(doc => {
-        const d = doc.data();
-        const li = document.createElement('li');
-        li.innerHTML = `<strong>${d.scholarship_name}</strong> (${d.university_name}) <button onclick="deleteScholarship('${doc.id}')">🗑️</button>`;
-        list.appendChild(li);
-      });
+      snap.forEach(doc => { const d = doc.data(); const li = document.createElement('li'); li.innerHTML = `<strong>${d.scholarship_name}</strong> (${d.university_name}) <button onclick="deleteScholarship('${doc.id}')">🗑️</button>`; list.appendChild(li); });
     }
-
-    async function deleteScholarship(id) {
-      await db.collection("scholarships").doc(id).delete();
-      loadAdminList();
-    }
-
+    async function deleteScholarship(id) { await db.collection("scholarships").doc(id).delete(); loadAdminList(); }
     async function loadAnalytics() {
-      const totalSnap = await db.collection("scholarships").get();
-      document.getElementById('total-sch').innerText = totalSnap.size;
+      const totalSnap = await db.collection("scholarships").get(); document.getElementById('total-sch').innerText = totalSnap.size;
       const today = new Date(); today.setHours(0,0,0,0);
-      const searchSnap = await db.collection("studentData").where("timestamp",">=",today).get();
-      document.getElementById('today-searches').innerText = searchSnap.size;
+      const searchSnap = await db.collection("studentData").where("timestamp",">=",today).get(); document.getElementById('today-searches').innerText = searchSnap.size;
     }
-
     async function adminSubmitScholarship() {
       const data = {
         scholarship_name: document.getElementById('admin_sch_name').value,
@@ -619,8 +638,6 @@
       document.getElementById('admin_deadline').value='';
     }
 
-    // All student functions (toggleAccordion, toggleLanguageInputs, toggleScoreField, validateStudentForm, collectStudentData, computeProfileScore, isFieldMatch, findScholarships, displayResults, generateSuggestions, goBackToForm) remain completely unchanged from the original code.
-    // (Included below for completeness)
     function toggleAccordion(header) { header.parentElement.classList.toggle('open'); }
     function toggleLanguageInputs() {
       const hasCert = document.getElementById('has_english_cert').value === 'হ্যাঁ';
@@ -629,28 +646,19 @@
     }
     function toggleScoreField() {
       const checked = [...document.querySelectorAll('#english_tests input:checked')].map(cb => cb.value);
-      const container = document.getElementById('score_inputs');
-      container.innerHTML = '';
-      checked.forEach(t => {
-        container.innerHTML += `<div class="form-group"><label>${t} স্কোর</label><input type="text" id="score_${t}"></div>`;
-      });
+      const container = document.getElementById('score_inputs'); container.innerHTML = '';
+      checked.forEach(t => { container.innerHTML += `<div class="form-group"><label>${t} স্কোর</label><input type="text" id="score_${t}"></div>`; });
     }
     function validateStudentForm() {
       const name = document.getElementById('name').value.trim();
       const phone = document.getElementById('phone').value.trim();
-      if (!name || !phone) {
-        document.getElementById('form-error').innerText = 'নাম ও ফোন নম্বর আবশ্যক!';
-        return false;
-      }
-      document.getElementById('form-error').innerText = '';
-      return true;
+      if (!name || !phone) { document.getElementById('form-error').innerText = 'নাম ও ফোন নম্বর আবশ্যক!'; return false; }
+      document.getElementById('form-error').innerText = ''; return true;
     }
     function collectStudentData() {
       const student = {
-        name: document.getElementById('name').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        birthdate: document.getElementById('birthdate').value,
+        name: document.getElementById('name').value.trim(), phone: document.getElementById('phone').value.trim(),
+        email: document.getElementById('email').value.trim(), birthdate: document.getElementById('birthdate').value,
         nationality: document.getElementById('nationality').value,
         ssc_gpa: parseFloat(document.getElementById('ssc_gpa').value) || 0,
         hsc_gpa: parseFloat(document.getElementById('hsc_gpa').value) || 0,
@@ -659,8 +667,7 @@
         education_gap: document.getElementById('education_gap').value,
         target_degree: document.getElementById('target_degree').value,
         has_english_cert: document.getElementById('has_english_cert').value === 'হ্যাঁ',
-        english_scores: {},
-        other_languages: document.getElementById('other_languages').value.trim(),
+        english_scores: {}, other_languages: document.getElementById('other_languages').value.trim(),
         work_experience: parseFloat(document.getElementById('work_experience').value) || 0,
         research_exp: document.getElementById('research_exp').value === 'হ্যাঁ',
         publications: parseInt(document.getElementById('publications').value) || 0,
@@ -675,11 +682,7 @@
         preferred_field: document.getElementById('preferred_field').value
       };
       if (student.has_english_cert) {
-        const tests = [...document.querySelectorAll('#english_tests input:checked')].map(cb => cb.value);
-        tests.forEach(t => {
-          const scoreInput = document.getElementById(`score_${t}`);
-          student.english_scores[t] = scoreInput ? scoreInput.value.trim() : null;
-        });
+        [...document.querySelectorAll('#english_tests input:checked')].forEach(t => { student.english_scores[t] = document.getElementById(`score_${t}`)?.value || null; });
       }
       return student;
     }
@@ -687,23 +690,15 @@
       let score = 0;
       if (student.ssc_gpa >= 4.5) score += 12; else if (student.ssc_gpa >= 4.0) score += 8; else if (student.ssc_gpa >= 3.0) score += 4;
       if (student.hsc_gpa >= 4.5) score += 12; else if (student.hsc_gpa >= 4.0) score += 8; else if (student.hsc_gpa >= 3.0) score += 4;
-      if (student.ug_cgpa) {
-        if (student.ug_cgpa >= 3.75) score += 18; else if (student.ug_cgpa >= 3.5) score += 13; else if (student.ug_cgpa >= 3.0) score += 8; else score += 4;
-      } else if (student.target_degree !== 'ব্যাচেলর') score += 2;
-      if (student.has_english_cert) {
-        const ielts = parseFloat(student.english_scores['IELTS']);
-        if (!isNaN(ielts)) {
-          if (ielts >= 7.5) score += 12; else if (ielts >= 7.0) score += 10; else if (ielts >= 6.5) score += 8; else if (ielts >= 6.0) score += 5;
-        } else score += 6;
-      } else score += 1;
+      if (student.ug_cgpa) { if (student.ug_cgpa >= 3.75) score += 18; else if (student.ug_cgpa >= 3.5) score += 13; else if (student.ug_cgpa >= 3.0) score += 8; else score += 4; }
+      else if (student.target_degree !== 'ব্যাচেলর') score += 2;
+      if (student.has_english_cert) { const ielts = parseFloat(student.english_scores['IELTS']); if (!isNaN(ielts)) { if (ielts >= 7.5) score += 12; else if (ielts >= 7.0) score += 10; else if (ielts >= 6.5) score += 8; else if (ielts >= 6.0) score += 5; } else score += 6; }
+      else score += 1;
       if (student.other_languages) score += 3;
       score += Math.min(8, student.work_experience * 2.5);
-      if (student.research_exp) score += 5;
-      score += Math.min(4, student.publications * 2);
-      if (student.intl_exposure) score += 3;
-      if (student.awards) score += 5;
-      if (student.leadership) score += 4;
-      if (student.volunteer) score += 3;
+      if (student.research_exp) score += 5; score += Math.min(4, student.publications * 2);
+      if (student.intl_exposure) score += 3; if (student.awards) score += 5;
+      if (student.leadership) score += 4; if (student.volunteer) score += 3;
       if (student.income_band === '১৫০০০ এর নিচে') score += 5; else if (student.income_band === '১৫০০০-৩০০০০') score += 3;
       if (student.has_passport) score += 5;
       if (student.education_gap === 'হ্যাঁ') score -= 3;
@@ -712,44 +707,22 @@
     function isFieldMatch(studentField, scholarshipDesc) {
       if (studentField === 'যেকোনো') return true;
       const desc = (scholarshipDesc || '').toLowerCase();
-      const syn = {
-        'কম্পিউটার সায়েন্স': ['cse','computer','কম্পিউটার','সফটওয়্যার'],
-        'ইঞ্জিনিয়ারিং': ['engineering','ইঞ্জিনিয়ার','প্রযুক্তি'],
-        'মেডিসিন': ['medical','medicine','ডাক্তার'],
-        'ব্যবসায় প্রশাসন': ['bba','mba','business','ব্যবসায়'],
-        'জনস্বাস্থ্য': ['public health','health'],
-        'কৃষি': ['agriculture','agri']
-      };
-      const keywords = syn[studentField] || [studentField.toLowerCase()];
-      return keywords.some(k => desc.includes(k));
+      const syn = { 'কম্পিউটার সায়েন্স': ['cse','computer','কম্পিউটার','সফটওয়্যার'], 'ইঞ্জিনিয়ারিং': ['engineering','ইঞ্জিনিয়ার','প্রযুক্তি'], 'মেডিসিন': ['medical','medicine','ডাক্তার'], 'ব্যবসায় প্রশাসন': ['bba','mba','business','ব্যবসায়'], 'জনস্বাস্থ্য': ['public health','health'], 'কৃষি': ['agriculture','agri'] };
+      return (syn[studentField] || [studentField.toLowerCase()]).some(k => desc.includes(k));
     }
     async function findScholarships() {
       if (!validateStudentForm()) return;
       const student = collectStudentData();
-      try {
-        await db.collection("studentData").add({
-          ...student,
-          uid: auth.currentUser.uid,
-          authEmail: auth.currentUser.email,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } catch(e) { console.error(e); }
+      try { await db.collection("studentData").add({ ...student, uid: auth.currentUser.uid, authEmail: auth.currentUser.email, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); } catch(e) {}
       const profileScore = computeProfileScore(student);
-      document.getElementById('student-form-panel').classList.add('hidden');
-      document.getElementById('results-panel').classList.remove('hidden');
-      document.getElementById('loading-area').classList.remove('hidden');
-      document.getElementById('match-results').classList.add('hidden');
-      document.getElementById('suggestions-container').classList.add('hidden');
-      const snap = await db.collection("scholarships").get();
-      const scholarships = [];
-      snap.forEach(d => scholarships.push({ id: d.id, ...d.data() }));
+      document.getElementById('student-form-panel').classList.add('hidden'); document.getElementById('results-panel').classList.remove('hidden');
+      document.getElementById('loading-area').classList.remove('hidden'); document.getElementById('match-results').classList.add('hidden'); document.getElementById('suggestions-container').classList.add('hidden');
+      const snap = await db.collection("scholarships").get(); const scholarships = []; snap.forEach(d => scholarships.push({ id: d.id, ...d.data() }));
       const matched = [], almost = [];
       const oic = ["বাংলাদেশ","পাকিস্তান","মিশর","ইন্দোনেশিয়া","মালয়েশিয়া","নাইজেরিয়া","তুরস্ক"];
       const cw = ["বাংলাদেশ","ভারত","পাকিস্তান","শ্রীলঙ্কা","যুক্তরাজ্য","কানাডা","অস্ট্রেলিয়া"];
       for (const sch of scholarships) {
-        const cri = sch.criteria || {};
-        const eligibility = sch.eligibility || 'যেকোনো';
-        const degList = sch.degree || [];
+        const cri = sch.criteria || {}; const eligibility = sch.eligibility || 'যেকোনো'; const degList = sch.degree || [];
         if (!degList.includes(student.target_degree)) continue;
         if (eligibility === 'ওআইসি' && !oic.includes(student.nationality)) continue;
         if (eligibility === 'কমনওয়েলথ' && !cw.includes(student.nationality)) continue;
@@ -760,29 +733,13 @@
         else if (cri.min_ug_cgpa && !student.ug_cgpa) score -= 12;
         if (sch.language_required) {
           if (!student.has_english_cert) score -= 30;
-          else {
-            const tests = sch.language_tests || [];
-            const scores = sch.language_scores || {};
-            let ok = false;
-            for (const t of tests) {
-              const req = parseFloat(scores[t]);
-              const stu = parseFloat(student.english_scores[t]);
-              if (!isNaN(req) && !isNaN(stu) && stu >= req) ok = true;
-              else if (!isNaN(req) && stu < req) score -= 15;
-            }
-            if (!ok && tests.length) score -= 10;
-          }
+          else { const tests = sch.language_tests || []; const scores = sch.language_scores || {}; let ok = false; for (const t of tests) { const req = parseFloat(scores[t]); const stu = parseFloat(student.english_scores[t]); if (!isNaN(req) && !isNaN(stu) && stu >= req) ok = true; else if (!isNaN(req) && stu < req) score -= 15; } if (!ok && tests.length) score -= 10; }
         }
         if (cri.passport_mandatory && !student.has_passport) score -= 25;
-        if (sch.description && (sch.description.includes('আর্থিক')||sch.description.includes('low-income'))) {
-          if (student.income_band === '১৫০০০ এর নিচে' || student.income_band === '১৫০০০-৩০০০০') score += 5;
-        }
+        if (sch.description && (sch.description.includes('আর্থিক')||sch.description.includes('low-income'))) { if (student.income_band === '১৫০০০ এর নিচে' || student.income_band === '১৫০০০-৩০০০০') score += 5; }
         if (student.preferred_country !== 'যেকোনো' && sch.country === student.preferred_country) score += 10;
         if (isFieldMatch(student.preferred_field, sch.description)) score += 5;
-        if (sch.description && (sch.description.includes('leadership')||sch.description.includes('নেতৃত্ব'))) {
-          if (student.leadership) score += 4;
-          if (student.volunteer) score += 3;
-        }
+        if (sch.description && (sch.description.includes('leadership')||sch.description.includes('নেতৃত্ব'))) { if (student.leadership) score += 4; if (student.volunteer) score += 3; }
         score = Math.min(100, Math.max(0, Math.round(score)));
         const category = score >= 80 ? '🟢 নিরাপদ' : (score >= 60 ? '🟡 টার্গেট' : '🔴 রিচ');
         (score >= 40 ? matched : almost).push({ ...sch, matchScore: score, category });
@@ -792,24 +749,13 @@
       document.getElementById('loading-area').classList.add('hidden');
     }
     function displayResults(matched, almost, student, profileScore) {
-      const scoreDesc = profileScore >= 80 ? 'অসাধারণ! স্কলারশিপ পাওয়ার সম্ভাবনা অনেক বেশি।' :
-                        profileScore >= 60 ? 'ভালো, তবে উন্নতির জায়গা আছে।' : 'আরও প্রস্তুতি দরকার।';
-      document.getElementById('profile-score-section').innerHTML = `
-        <h4>📊 প্রোফাইল স্কোর</h4>
-        <div class="profile-score-bar"><div class="profile-score-fill" style="width:${profileScore}%;"></div></div>
-        <p><strong>${profileScore}/100</strong> — ${scoreDesc}</p>
-      `;
+      const scoreDesc = profileScore >= 80 ? 'অসাধারণ!' : profileScore >= 60 ? 'ভালো, উন্নতি সম্ভব।' : 'আরও প্রস্তুতি দরকার।';
+      document.getElementById('profile-score-section').innerHTML = `<h4>📊 প্রোফাইল স্কোর</h4><div class="profile-score-bar"><div class="profile-score-fill" style="width:${profileScore}%;"></div></div><p><strong>${profileScore}/100</strong> — ${scoreDesc}</p>`;
       const matchDiv = document.getElementById('match-results');
-      matchDiv.innerHTML = matched.length ? `<h3>✅ ${matched.length}টি স্কলারশিপ</h3>` : '<p>❌ দুঃখিত, মিলেনি</p>';
+      matchDiv.innerHTML = matched.length ? `<h3>✅ ${matched.length}টি স্কলারশিপ</h3>` : '<p>❌ মিলেনি</p>';
       matched.forEach((sch, idx) => {
         const descId = `desc-${idx}`;
-        matchDiv.innerHTML += `
-          <div class="scholarship-card">
-            <div style="display:flex;justify-content:space-between;"><strong>${sch.scholarship_name||'নামবিহীন'}</strong> <span class="match-badge">${sch.matchScore}%</span></div>
-            <p>${sch.university_name||''} | ${sch.country||''} | ${sch.deadline||''} | ${sch.category}</p>
-            <button onclick="document.getElementById('${descId}').classList.toggle('hidden')" style="background:none;border:1px solid #555;color:#ccc;padding:0.2rem 0.6rem;border-radius:12px;">📄 বিবরণ</button>
-            <div id="${descId}" class="hidden" style="margin-top:0.4rem;font-size:0.85rem;">${(sch.description||'').replace(/\n/g,'<br>')}</div>
-          </div>`;
+        matchDiv.innerHTML += `<div class="scholarship-card"><div style="display:flex;justify-content:space-between;"><strong>${sch.scholarship_name||'নামবিহীন'}</strong><span class="match-badge">${sch.matchScore}%</span></div><p>${sch.university_name||''} | ${sch.country||''} | ${sch.deadline||''} | ${sch.category}</p><button onclick="document.getElementById('${descId}').classList.toggle('hidden')" style="background:none;border:1px solid #444;color:#ccc;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.75rem;">📄 বিবরণ</button><div id="${descId}" class="hidden" style="margin-top:0.3rem;font-size:0.8rem;">${(sch.description||'').replace(/\n/g,'<br>')}</div></div>`;
       });
       matchDiv.classList.remove('hidden');
       const suggDiv = document.getElementById('suggestions-container');
@@ -819,12 +765,7 @@
       const cats = { academic:[], docs:[], finance:[], destination:[] };
       tips.forEach(t => cats[t.category].push(t.text));
       for (const [key,title] of [['academic','📚 একাডেমিক'],['docs','🛂 ডকুমেন্ট'],['finance','💰 আর্থিক'],['destination','🌍 দেশ']]) {
-        if (cats[key].length) {
-          const div = document.createElement('div');
-          div.className = 'suggestion-category';
-          div.innerHTML = `<h4>${title}</h4>` + cats[key].map(i => `<div>▹ ${i}</div>`).join('');
-          grid.appendChild(div);
-        }
+        if (cats[key].length) { const div = document.createElement('div'); div.className = 'suggestion-category'; div.innerHTML = `<h4>${title}</h4>` + cats[key].map(i => `<div class="suggestion-item">${i}</div>`).join(''); grid.appendChild(div); }
       }
       suggDiv.classList.remove('hidden');
     }
@@ -832,26 +773,15 @@
       const tips = [];
       tips.push({category:'academic', text:`লক্ষ্য ডিগ্রিতে ${matched.length}টি স্কলারশিপ।`});
       if (student.ssc_gpa < 4.5) tips.push({category:'academic', text:'SSC GPA বাড়ালে আরও সুযোগ।'});
-      if (!student.has_english_cert) tips.push({category:'academic', text:'IELTS দাও, অনেক স্কলারশিপ আনলক হবে।'});
+      if (!student.has_english_cert) tips.push({category:'academic', text:'IELTS দাও।'});
       if (!student.has_passport) tips.push({category:'docs', text:'পাসপোর্ট করো।'});
       if (student.work_experience < 1 && student.target_degree !== 'ব্যাচেলর') tips.push({category:'docs', text:'কাজের অভিজ্ঞতা বাড়াও।'});
       if (student.income_band === '১৫০০০ এর নিচে') tips.push({category:'finance', text:'আর্থিক অবস্থা সুবিধা দেবে।'});
-      const extras = [
-        {category:'docs', text:'মোটিভেশন লেটার তৈরি রাখো।'},
-        {category:'academic', text:'ট্রান্সক্রিপ্ট স্ক্যান করে রাখো।'},
-        {category:'finance', text:'আয়ের প্রমাণপত্র প্রস্তুত রাখো।'},
-        {category:'destination', text:'জার্মানি, তুরস্ক, চীন - স্কলারশিপের বড় উৎস।'},
-        {category:'destination', text:'কম্পিউটার সায়েন্স ও ইঞ্জিনিয়ারিংয়ে বেশি সুযোগ।'}
-      ];
-      tips.push(...extras);
+      tips.push({category:'docs', text:'মোটিভেশন লেটার তৈরি রাখো।'},{category:'academic', text:'ট্রান্সক্রিপ্ট স্ক্যান করো।'},{category:'finance', text:'আয়ের প্রমাণপত্র রাখো।'},{category:'destination', text:'জার্মানি, তুরস্ক, চীন বড় উৎস।'},{category:'destination', text:'CSE ও ইঞ্জিনিয়ারিংয়ে বেশি সুযোগ।'});
       while (tips.length < 11) tips.push({category:'destination', text:'নিয়মিত পোর্টাল চেক করো।'});
       return tips.slice(0,17);
     }
-    function goBackToForm() {
-      document.getElementById('results-panel').classList.add('hidden');
-      document.getElementById('student-form-panel').classList.remove('hidden');
-      window.scrollTo({top:0,behavior:'smooth'});
-    }
+    function goBackToForm() { document.getElementById('results-panel').classList.add('hidden'); document.getElementById('student-form-panel').classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   </script>
 </body>
 </html>
